@@ -1,0 +1,8 @@
+{
+  "/admin/templates/page": "app/admin/templates/page.js",
+  "/admin/pages/page": "app/admin/pages/page.js",
+  "/admin/publication/page": "app/admin/publication/page.js",
+  "/admin/pages/new/page": "app/admin/pages/new/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/import/page": "app/admin/import/page.js"
+}
