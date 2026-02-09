@@ -211,6 +211,7 @@ export default function ImportManager() {
         h2: row.h2 || null,
         canonical_url: row.canonical_url || null,
         status: (row.status as SEOMetadata['status']) || 'draft',
+        is_public: true,
       };
 
       const { error } = await supabase.from('seo_metadata').upsert(record, { onConflict: 'page_key' });

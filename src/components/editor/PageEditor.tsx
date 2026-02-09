@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Eye, EyeOff, Settings, FileText, Loader2, ArrowLeft } from 'lucide-react';
+import { Save, Eye, EyeOff, Settings, FileText, Loader2, ArrowLeft, Code, Globe, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
@@ -18,10 +18,12 @@ interface PageEditorProps {
 }
 
 type EditorTab = 'seo' | 'content' | 'preview';
+type ContentMode = 'visual' | 'code';
 
 export default function PageEditor({ pageId }: PageEditorProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<EditorTab>('seo');
+  const [contentMode, setContentMode] = useState<ContentMode>('visual');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(!!pageId);
   const [templates, setTemplates] = useState<PageTemplate[]>([]);
@@ -39,6 +41,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     keywords: [],
     content: '',
     status: 'draft',
+    is_public: true,
     exclude_from_sitemap: false,
   });
 
@@ -73,7 +76,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       return;
     }
 
-    setPageData(data);
+    setPageData({
+      ...data,
+      is_public: data.is_public ?? true,
+    });
     if (data.sections_content) {
       setSectionContents(data.sections_content as SectionContent[]);
     }
@@ -178,6 +184,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       status: newStatus || pageData.status || 'draft',
       template_id: selectedTemplate?.id || null,
       sections_content: sectionContents.length > 0 ? sectionContents : null,
+      is_public: pageData.is_public ?? true,
       exclude_from_sitemap: pageData.exclude_from_sitemap || false,
       updated_at: new Date().toISOString(),
     };
@@ -310,12 +317,45 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                 </div>
               ) : (
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
-                  <RichTextEditor
-                    content={pageData.content || ''}
-                    onChange={(html) => updateField('content', html)}
-                    placeholder="Rédigez le contenu de votre page..."
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Contenu de la page</label>
+                    <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setContentMode('visual')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${contentMode === 'visual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Visuel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentMode('code')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${contentMode === 'code' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        <Code className="w-3.5 h-3.5" />
+                        Code HTML
+                      </button>
+                    </div>
+                  </div>
+                  {contentMode === 'visual' ? (
+                    <RichTextEditor
+                      content={pageData.content || ''}
+                      onChange={(html) => updateField('content', html)}
+                      placeholder="Rédigez le contenu de votre page..."
+                    />
+                  ) : (
+                    <textarea
+                      value={pageData.content || ''}
+                      onChange={(e) => updateField('content', e.target.value)}
+                      placeholder="<div class=&quot;bg-blue-500 text-white p-8&quot;>&#10;  <h2 class=&quot;text-3xl font-bold&quot;>Mon titre</h2>&#10;  <p class=&quot;mt-4&quot;>Mon contenu avec Tailwind CSS...</p>&#10;</div>"
+                      className="w-full h-80 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
+                      spellCheck={false}
+                    />
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">
+                    💡 En mode Code HTML, vous pouvez utiliser des classes Tailwind CSS pour personnaliser le design
+                  </p>
                 </div>
               )}
             </div>
@@ -332,7 +372,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Status */}
+          {/* Status & Visibility */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <h3 className="font-bold text-gray-900 mb-3">Publication</h3>
             <div className="space-y-3">
@@ -349,6 +389,38 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                   <option value="archived">Archivé</option>
                 </select>
               </div>
+
+              {/* Visibility toggle */}
+              <div>
+                <label className="text-sm text-gray-500 mb-1.5 block">Visibilité</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateField('is_public', true)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      pageData.is_public
+                        ? 'bg-green-50 text-green-700 border-2 border-green-300'
+                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" />
+                    Publique
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('is_public', false)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !pageData.is_public
+                        ? 'bg-amber-50 text-amber-700 border-2 border-amber-300'
+                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4" />
+                    Privée
+                  </button>
+                </div>
+              </div>
+
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

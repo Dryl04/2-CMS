@@ -14,6 +14,10 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
     return sectionContents?.find((sc) => sc.section_id === sectionId)?.content || '';
   };
 
+  const hasCustomHTML = (html: string): boolean => {
+    return /<(?:div|section|article|header|footer|nav|aside|main|figure|span)[^>]*class=/i.test(html);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       {/* Browser bar */}
@@ -29,38 +33,58 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
       </div>
 
       {/* Page content */}
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="preview-container">
         {page.h1 && (
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{page.h1}</h1>
+          <div className="max-w-3xl mx-auto px-8 pt-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{page.h1}</h1>
+          </div>
         )}
         {page.h2 && (
-          <h2 className="text-xl text-gray-600 mb-6">{page.h2}</h2>
+          <div className="max-w-3xl mx-auto px-8">
+            <h2 className="text-xl text-gray-600 mb-6">{page.h2}</h2>
+          </div>
         )}
 
         {/* Template sections */}
         {sections && sections.length > 0 ? (
-          <div className="space-y-6">
+          <div>
             {sections.map((section) => {
               const html = getSectionContent(section.id);
               if (!html) return null;
+              const sanitized = sanitizeHTML(html);
+              const isCustom = hasCustomHTML(html);
               return (
                 <div key={section.id}>
-                  <div
-                    className="prose prose-gray max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(html) }}
-                  />
+                  {isCustom ? (
+                    <div dangerouslySetInnerHTML={{ __html: sanitized }} />
+                  ) : (
+                    <div className="max-w-3xl mx-auto px-8 py-4">
+                      <div
+                        className="prose prose-gray max-w-none"
+                        dangerouslySetInnerHTML={{ __html: sanitized }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         ) : (
           // Fallback: raw content
-          page.content && (
-            <div
-              className="prose prose-gray max-w-none"
-              dangerouslySetInnerHTML={{ __html: sanitizeHTML(page.content) }}
-            />
-          )
+          page.content && (() => {
+            const sanitized = sanitizeHTML(page.content);
+            const isCustom = hasCustomHTML(page.content);
+            return isCustom ? (
+              <div dangerouslySetInnerHTML={{ __html: sanitized }} />
+            ) : (
+              <div className="max-w-3xl mx-auto p-8">
+                <div
+                  className="prose prose-gray max-w-none"
+                  dangerouslySetInnerHTML={{ __html: sanitized }}
+                />
+              </div>
+            );
+          })()
         )}
 
         {!page.h1 && !page.content && (!sections || sections.length === 0) && (
