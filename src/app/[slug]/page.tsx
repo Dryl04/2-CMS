@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { sanitizeHTMLServer } from '@/lib/sanitize';
 import { applyInternalLinks } from '@/lib/internal-links';
@@ -98,6 +99,8 @@ export default async function PublicPage({ params }: PageProps) {
 
   return (
     <>
+      {/* Load Tailwind CDN for user-generated content with arbitrary classes */}
+      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
       <PublicHeader />
       <main className="min-h-screen pt-20">
         {/* If content uses custom HTML/Tailwind classes, render without prose wrapper */}
