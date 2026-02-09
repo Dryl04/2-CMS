@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Eye, Code } from 'lucide-react';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import { sanitizeHTML } from '@/lib/sanitize';
@@ -14,6 +14,62 @@ interface SectionEditorProps {
 }
 
 type SectionMode = 'visual' | 'code' | 'preview';
+
+function SectionPreviewIframe({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(150);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'section-preview-height' && typeof event.data.height === 'number') {
+        setIframeHeight(Math.max(150, event.data.height + 20));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (iframeRef.current) {
+      const sanitized = sanitizeHTML(html);
+      const doc = iframeRef.current.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }</style>
+</head>
+<body>
+  ${sanitized}
+  <script>
+    function sendHeight() {
+      window.parent.postMessage({ type: 'section-preview-height', height: document.documentElement.scrollHeight }, '*');
+    }
+    window.addEventListener('load', sendHeight);
+    setTimeout(sendHeight, 500);
+  <\/script>
+</body>
+</html>`);
+        doc.close();
+      }
+    }
+  }, [html]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full border-0 rounded-xl"
+      style={{ height: `${iframeHeight}px`, minHeight: '150px' }}
+      sandbox="allow-scripts"
+      title="Aperçu de la section"
+    />
+  );
+}
 
 export default function SectionEditor({ section, content, onChange }: SectionEditorProps) {
   const [mode, setMode] = useState<SectionMode>('visual');
@@ -87,7 +143,7 @@ export default function SectionEditor({ section, content, onChange }: SectionEdi
       {mode === 'preview' && (
         <div className="border-2 border-gray-200 rounded-xl overflow-hidden min-h-[150px]">
           {content.content ? (
-            <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(content.content) }} />
+            <SectionPreviewIframe html={content.content} />
           ) : (
             <p className="text-gray-400 text-center py-8 text-sm">Aucun contenu à prévisualiser</p>
           )}
