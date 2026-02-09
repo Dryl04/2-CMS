@@ -52,6 +52,7 @@ export default async function PublicPage({ params }: PageProps) {
     .select('*')
     .eq('slug', slug)
     .eq('status', 'published')
+    .neq('is_public', false)
     .single();
 
   if (!page || error) notFound();

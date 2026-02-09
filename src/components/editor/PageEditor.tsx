@@ -348,7 +348,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     <textarea
                       value={pageData.content || ''}
                       onChange={(e) => updateField('content', e.target.value)}
-                      placeholder="<div class=&quot;bg-blue-500 text-white p-8&quot;>&#10;  <h2 class=&quot;text-3xl font-bold&quot;>Mon titre</h2>&#10;  <p class=&quot;mt-4&quot;>Mon contenu avec Tailwind CSS...</p>&#10;</div>"
+                      placeholder={'<div class="bg-blue-500 text-white p-8">\n  <h2 class="text-3xl font-bold">Mon titre</h2>\n  <p class="mt-4">Mon contenu avec Tailwind CSS...</p>\n</div>'}
                       className="w-full h-80 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
                       spellCheck={false}
                     />

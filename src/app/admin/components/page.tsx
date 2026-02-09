@@ -78,7 +78,10 @@ export default function ComponentsPage() {
 
     const { data, error } = await query;
     if (error) {
-      // If table doesn't exist yet, just show empty + templates
+      // Table may not exist yet — show empty list with templates
+      if (!error.message?.includes('does not exist')) {
+        toast.error('Erreur de chargement: ' + error.message);
+      }
       setComponents([]);
     } else {
       setComponents(data || []);

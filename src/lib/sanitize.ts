@@ -11,13 +11,21 @@ export function sanitizeHTML(dirty: string): string {
 
 /**
  * Sanitize HTML for server-side rendering (no DOMPurify dependency on window).
- * Allows Tailwind classes and standard HTML attributes.
+ * Strips dangerous elements and attributes while preserving Tailwind classes.
  */
 export function sanitizeHTMLServer(dirty: string): string {
-  // On server, we do basic sanitization by stripping script tags and event handlers
-  return dirty
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/\bon\w+\s*=\s*[^\s>]+/gi, '')
-    .replace(/javascript\s*:/gi, '');
+  // Remove script tags and their content
+  let clean = dirty.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  // Remove event handler attributes (onclick, onload, onerror, etc.)
+  clean = clean.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  // Remove javascript: protocol from href, src, action, etc.
+  clean = clean.replace(/(href|src|action|formaction|data|poster)\s*=\s*(?:"[^"]*javascript\s*:[^"]*"|'[^']*javascript\s*:[^']*')/gi, '$1=""');
+  // Remove data: URIs that could contain HTML/scripts (allow data:image)
+  clean = clean.replace(/(href|src|action|formaction)\s*=\s*(?:"data:(?!image\/)[^"]*"|'data:(?!image\/)[^']*')/gi, '$1=""');
+  // Remove <object>, <embed>, <applet> tags
+  clean = clean.replace(/<(?:object|embed|applet)\b[^>]*>[\s\S]*?<\/(?:object|embed|applet)>/gi, '');
+  clean = clean.replace(/<(?:object|embed|applet)\b[^>]*\/?>/gi, '');
+  // Remove <base> tags
+  clean = clean.replace(/<base\b[^>]*\/?>/gi, '');
+  return clean;
 }
