@@ -46,13 +46,13 @@ export default async function PublicPage({ params }: PageProps) {
   const supabase = await createServerClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
 
-  // Load page data — show published pages or pages marked as public
+  // Load page data — show published pages that are public
   const { data: page, error } = await supabase
     .from('seo_metadata')
     .select('*')
     .eq('slug', slug)
     .eq('status', 'published')
-    .neq('is_public', false)
+    .eq('is_public', true)
     .single();
 
   if (!page || error) notFound();

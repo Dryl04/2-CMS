@@ -184,10 +184,17 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       status: newStatus || pageData.status || 'draft',
       template_id: selectedTemplate?.id || null,
       sections_content: sectionContents.length > 0 ? sectionContents : null,
-      is_public: pageData.is_public ?? true,
-      exclude_from_sitemap: pageData.exclude_from_sitemap || false,
+      is_public: pageData.is_public === false ? false : true,
+      exclude_from_sitemap: Boolean(pageData.exclude_from_sitemap),
       updated_at: new Date().toISOString(),
     };
+
+    console.log('📝 Sauvegarde de la page:', {
+      slug: record.slug,
+      status: record.status,
+      is_public: record.is_public,
+      pageId
+    });
 
     let error;
     if (pageId) {
@@ -198,8 +205,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
     setIsSaving(false);
     if (error) {
+      console.error('❌ Erreur de sauvegarde:', error);
       toast.error('Erreur: ' + error.message);
     } else {
+      console.log('✅ Page sauvegardée avec succès');
       toast.success(pageId ? 'Page mise à jour' : 'Page créée');
       if (!pageId) router.push('/admin/pages');
     }
@@ -397,11 +406,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                   <button
                     type="button"
                     onClick={() => updateField('is_public', true)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      pageData.is_public
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageData.is_public
                         ? 'bg-green-50 text-green-700 border-2 border-green-300'
                         : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <Globe className="w-4 h-4" />
                     Publique
@@ -409,11 +417,10 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                   <button
                     type="button"
                     onClick={() => updateField('is_public', false)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      !pageData.is_public
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!pageData.is_public
                         ? 'bg-amber-50 text-amber-700 border-2 border-amber-300'
                         : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <Lock className="w-4 h-4" />
                     Privée

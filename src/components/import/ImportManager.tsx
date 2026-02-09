@@ -204,14 +204,14 @@ export default function ImportManager() {
         title: row.title,
         meta_description: row.meta_description,
         keywords: row.keywords
-          ? row.keywords.split(',').map((k) => k.trim()).filter(Boolean)
+          ? Array.isArray(row.keywords)
+            ? row.keywords
+            : row.keywords.split(',').map((k) => k.trim()).filter(Boolean)
           : [],
-        content: row.content || null,
         h1: row.h1 || row.title || null,
         h2: row.h2 || null,
         canonical_url: row.canonical_url || null,
         status: (row.status as SEOMetadata['status']) || 'draft',
-        is_public: true,
       };
 
       const { error } = await supabase.from('seo_metadata').upsert(record, { onConflict: 'page_key' });

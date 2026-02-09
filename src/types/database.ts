@@ -1,5 +1,10 @@
 // ============ SEO Metadata ============
-export type PageStatus = 'draft' | 'pending' | 'published' | 'archived' | 'error';
+export type PageStatus =
+  | "draft"
+  | "pending"
+  | "published"
+  | "archived"
+  | "error";
 
 export interface SEOMetadata {
   id: string;
@@ -33,16 +38,16 @@ export interface SEOMetadata {
 
 // ============ Templates ============
 export type SectionType =
-  | 'hero'
-  | 'rich_text'
-  | 'image_text'
-  | 'cta'
-  | 'faq'
-  | 'testimonials'
-  | 'gallery'
-  | 'features'
-  | 'stats'
-  | 'contact';
+  | "hero"
+  | "rich_text"
+  | "image_text"
+  | "cta"
+  | "faq"
+  | "testimonials"
+  | "gallery"
+  | "features"
+  | "stats"
+  | "contact";
 
 export interface TemplateSection {
   id: string;
@@ -105,7 +110,7 @@ export interface MediaFile {
 }
 
 // ============ User ============
-export type UserRole = 'admin' | 'seo';
+export type UserRole = "admin" | "seo" | "editor" | "viewer";
 
 export interface UserProfile {
   id: string;
@@ -128,15 +133,58 @@ export interface ComponentBlock {
 }
 
 // ============ Section Catalog ============
-export const SECTION_CATALOG: Record<SectionType, { label: string; description: string; icon: string }> = {
-  hero: { label: 'Hero / En-tête', description: 'Section principale avec titre et accroche', icon: 'Layout' },
-  rich_text: { label: 'Texte riche', description: 'Bloc de texte avec mise en forme', icon: 'FileText' },
-  image_text: { label: 'Image + Texte', description: 'Image accompagnée de texte', icon: 'Image' },
-  cta: { label: 'Appel à l\'action', description: 'Bouton d\'action avec texte', icon: 'MousePointer' },
-  faq: { label: 'FAQ', description: 'Questions / réponses', icon: 'HelpCircle' },
-  testimonials: { label: 'Témoignages', description: 'Avis et témoignages clients', icon: 'MessageSquare' },
-  gallery: { label: 'Galerie', description: 'Grille d\'images ou de médias', icon: 'Grid' },
-  features: { label: 'Fonctionnalités', description: 'Liste de caractéristiques', icon: 'List' },
-  stats: { label: 'Statistiques', description: 'Chiffres clés et KPI', icon: 'BarChart3' },
-  contact: { label: 'Contact', description: 'Formulaire ou informations de contact', icon: 'Mail' },
+export const SECTION_CATALOG: Record<
+  SectionType,
+  { label: string; description: string; icon: string }
+> = {
+  hero: {
+    label: "Hero / En-tête",
+    description: "Section principale avec titre et accroche",
+    icon: "Layout",
+  },
+  rich_text: {
+    label: "Texte riche",
+    description: "Bloc de texte avec mise en forme",
+    icon: "FileText",
+  },
+  image_text: {
+    label: "Image + Texte",
+    description: "Image accompagnée de texte",
+    icon: "Image",
+  },
+  cta: {
+    label: "Appel à l'action",
+    description: "Bouton d'action avec texte",
+    icon: "MousePointer",
+  },
+  faq: {
+    label: "FAQ",
+    description: "Questions / réponses",
+    icon: "HelpCircle",
+  },
+  testimonials: {
+    label: "Témoignages",
+    description: "Avis et témoignages clients",
+    icon: "MessageSquare",
+  },
+  gallery: {
+    label: "Galerie",
+    description: "Grille d'images ou de médias",
+    icon: "Grid",
+  },
+  features: {
+    label: "Fonctionnalités",
+    description: "Liste de caractéristiques",
+    icon: "List",
+  },
+  stats: {
+    label: "Statistiques",
+    description: "Chiffres clés et KPI",
+    icon: "BarChart3",
+  },
+  contact: {
+    label: "Contact",
+    description: "Formulaire ou informations de contact",
+    icon: "Mail",
+  },
 };
