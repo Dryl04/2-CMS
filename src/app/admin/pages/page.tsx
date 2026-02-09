@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, Trash2, Edit, ExternalLink } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit, ExternalLink, Globe, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -129,6 +129,7 @@ export default function PagesListPage() {
                 <th className="text-left py-3 px-4 font-medium text-gray-500">Page</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-500">Slug</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-500">Statut</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-500">Visibilité</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-500">Mots-clés</th>
                 <th className="text-right py-3 px-4 font-medium text-gray-500">Actions</th>
               </tr>
@@ -145,6 +146,19 @@ export default function PagesListPage() {
                   </td>
                   <td className="py-3 px-4">
                     <StatusBadge status={page.status} />
+                  </td>
+                  <td className="py-3 px-4">
+                    {page.is_public !== false ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded-md">
+                        <Globe className="w-3 h-3" />
+                        Publique
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">
+                        <Lock className="w-3 h-3" />
+                        Privée
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex gap-1 flex-wrap">

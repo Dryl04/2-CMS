@@ -21,6 +21,7 @@ export interface SEOMetadata {
   sections_content: SectionContent[] | null;
   template_id: string | null;
   parent_page_key: string | null;
+  is_public: boolean;
   exclude_from_sitemap: boolean;
   scheduled_at: string | null;
   published_at: string | null;
@@ -111,6 +112,19 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   created_at: string;
+}
+
+// ============ Reusable Components ============
+export interface ComponentBlock {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  html_content: string;
+  thumbnail: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ============ Section Catalog ============

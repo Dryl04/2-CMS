@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FileText, Layers, Upload,
-  Settings, Calendar, LogOut, Menu, X,
+  Settings, Calendar, LogOut, Menu, X, Puzzle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
   { href: '/admin/pages', label: 'Pages SEO', icon: FileText },
   { href: '/admin/templates', label: 'Modèles', icon: Layers },
+  { href: '/admin/components', label: 'Composants', icon: Puzzle },
   { href: '/admin/import', label: 'Import', icon: Upload },
   { href: '/admin/seo-settings', label: 'Paramètres SEO', icon: Settings },
   { href: '/admin/publication', label: 'Publication', icon: Calendar },
