@@ -48,7 +48,7 @@ export default function DashboardPage() {
     const { data, count } = await query;
     setPages((data as SEOMetadata[]) || []);
     if (statusFilter !== 'all' || search) {
-      // Use filtered count for pagination  
+      setTotal(count || 0);
     }
     setIsLoading(false);
   }, [statusFilter, search, currentPage]);
@@ -61,8 +61,7 @@ export default function DashboardPage() {
     setCurrentPage(1);
   }, [statusFilter, search]);
 
-  const filteredTotal = statusFilter === 'all' && !search ? total : pages.length;
-  const totalPages = Math.ceil((statusFilter !== 'all' || search ? filteredTotal : total) / PAGE_SIZE) || 1;
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   return (
     <div>

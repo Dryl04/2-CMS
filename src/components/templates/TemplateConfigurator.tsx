@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Trash2, GripVertical, ChevronUp, ChevronDown, Download, Eye, Code } from 'lucide-react';
+import { Save, Trash2, GripVertical, ChevronUp, ChevronDown, Download, Eye, Code, Palette } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import SectionCatalog from './SectionCatalog';
@@ -14,6 +14,50 @@ import type { PageTemplate, TemplateSection, SectionType, SectionContent } from 
 interface TemplateConfiguratorProps {
   template?: PageTemplate;
 }
+
+// Section style customization
+interface SectionStyle {
+  spacing: string;
+  backgroundColor: string;
+  textColor: string;
+  fontFamily: string;
+  paddingY: string;
+  paddingX: string;
+}
+
+const DEFAULT_STYLE: SectionStyle = {
+  spacing: '0',
+  backgroundColor: '',
+  textColor: '',
+  fontFamily: '',
+  paddingY: '0',
+  paddingX: '0',
+};
+
+const SPACING_OPTIONS = [
+  { value: '0', label: 'Aucun' },
+  { value: '2', label: 'XS (0.5rem)' },
+  { value: '4', label: 'S (1rem)' },
+  { value: '8', label: 'M (2rem)' },
+  { value: '12', label: 'L (3rem)' },
+  { value: '16', label: 'XL (4rem)' },
+  { value: '20', label: '2XL (5rem)' },
+];
+
+const PADDING_OPTIONS = [
+  { value: '0', label: 'Aucun' },
+  { value: '4', label: 'S (1rem)' },
+  { value: '8', label: 'M (2rem)' },
+  { value: '12', label: 'L (3rem)' },
+  { value: '16', label: 'XL (4rem)' },
+];
+
+const FONT_OPTIONS = [
+  { value: '', label: 'Par défaut (Inter)' },
+  { value: 'font-serif', label: 'Serif' },
+  { value: 'font-mono', label: 'Monospace' },
+  { value: 'font-sans', label: 'Sans-serif' },
+];
 
 // Default HTML snippets for each section type
 const SECTION_DEFAULTS: Record<SectionType, string> = {
@@ -38,6 +82,21 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
   const [showPreview, setShowPreview] = useState(false);
   const [sectionPreviews, setSectionPreviews] = useState<Record<string, string>>({});
   const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [sectionStyles, setSectionStyles] = useState<Record<string, SectionStyle>>({});
+  const [editingStyle, setEditingStyle] = useState<string | null>(null);
+  const fullPreviewIframeRef = useRef<HTMLIFrameElement>(null);
+  const [fullPreviewHeight, setFullPreviewHeight] = useState(400);
+
+  const getSectionStyle = (id: string): SectionStyle => {
+    return sectionStyles[id] || DEFAULT_STYLE;
+  };
+
+  const updateSectionStyle = (id: string, updates: Partial<SectionStyle>) => {
+    setSectionStyles((prev) => ({
+      ...prev,
+      [id]: { ...getSectionStyle(id), ...updates },
+    }));
+  };
 
   const addSection = (type: SectionType) => {
     const id = generateId();
@@ -53,11 +112,17 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
     setSections([...sections, newSection]);
     // Set default HTML for preview
     setSectionPreviews((prev) => ({ ...prev, [id]: SECTION_DEFAULTS[type] }));
+    setSectionStyles((prev) => ({ ...prev, [id]: { ...DEFAULT_STYLE } }));
   };
 
   const removeSection = (id: string) => {
     setSections(sections.filter((s) => s.id !== id).map((s, i) => ({ ...s, order: i })));
     setSectionPreviews((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    setSectionStyles((prev) => {
       const updated = { ...prev };
       delete updated[id];
       return updated;
@@ -212,6 +277,14 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
                       >
                         <Code className="w-4 h-4" />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStyle(editingStyle === section.id ? null : section.id)}
+                        className={`p-1 rounded transition-colors ${editingStyle === section.id ? 'bg-purple-50 text-purple-600' : 'hover:bg-gray-100 text-gray-500'}`}
+                        title="Personnaliser le style"
+                      >
+                        <Palette className="w-4 h-4" />
+                      </button>
                       <button type="button" onClick={() => moveSection(index, 'up')} disabled={index === 0} className="p-1 hover:bg-gray-100 rounded disabled:opacity-20">
                         <ChevronUp className="w-4 h-4" />
                       </button>
@@ -237,14 +310,86 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
                     </div>
                   )}
 
-                  {/* Section preview */}
+                  {/* Style customization panel */}
+                  {editingStyle === section.id && (
+                    <div className="mb-3 bg-gray-50 rounded-lg p-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Espacement (marge haute)</label>
+                          <select
+                            value={getSectionStyle(section.id).spacing}
+                            onChange={(e) => updateSectionStyle(section.id, { spacing: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+                          >
+                            {SPACING_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Police</label>
+                          <select
+                            value={getSectionStyle(section.id).fontFamily}
+                            onChange={(e) => updateSectionStyle(section.id, { fontFamily: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+                          >
+                            {FONT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Couleur de fond</label>
+                          <input
+                            type="color"
+                            value={getSectionStyle(section.id).backgroundColor || '#ffffff'}
+                            onChange={(e) => updateSectionStyle(section.id, { backgroundColor: e.target.value === '#ffffff' ? '' : e.target.value })}
+                            className="w-full h-8 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Couleur du texte</label>
+                          <input
+                            type="color"
+                            value={getSectionStyle(section.id).textColor || '#000000'}
+                            onChange={(e) => updateSectionStyle(section.id, { textColor: e.target.value === '#000000' ? '' : e.target.value })}
+                            className="w-full h-8 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Padding vertical</label>
+                          <select
+                            value={getSectionStyle(section.id).paddingY}
+                            onChange={(e) => updateSectionStyle(section.id, { paddingY: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+                          >
+                            {PADDING_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Padding horizontal</label>
+                          <select
+                            value={getSectionStyle(section.id).paddingX}
+                            onChange={(e) => updateSectionStyle(section.id, { paddingX: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+                          >
+                            {PADDING_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section preview in iframe */}
                   {showPreview && (
                     <div className="mt-3 border border-gray-100 rounded-lg overflow-hidden bg-white">
-                      <div
-                        className="p-4"
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || `<p class="text-gray-400 text-center">Aperçu: ${section.label}</p>`),
-                        }}
+                      <TemplatePreviewIframe
+                        html={sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || `<p class="text-gray-400 text-center">Aperçu: ${section.label}</p>`}
+                        style={getSectionStyle(section.id)}
                       />
                     </div>
                   )}
@@ -286,31 +431,15 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
           )}
         </div>
 
-        {/* Full page preview */}
+        {/* Full page preview with iframe */}
         {showPreview && sections.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-amber-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <div className="flex-1 px-3 py-1 bg-white rounded-lg text-xs text-gray-500 font-mono">
-                Aperçu complet du modèle: {name || 'Sans titre'}
-              </div>
-            </div>
-            <div>
-              {sections.map((section) => (
-                <div key={section.id} className="border-b border-gray-50 last:border-0">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || ''),
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <FullTemplatePreview
+            sections={sections}
+            sectionPreviews={sectionPreviews}
+            sectionStyles={sectionStyles}
+            name={name}
+            getSectionStyle={getSectionStyle}
+          />
         )}
 
         <div className="flex gap-3">
@@ -342,6 +471,153 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
           <SectionCatalog onAdd={addSection} />
         </div>
       </div>
+    </div>
+  );
+}
+
+// Iframe-based preview for a single section
+function TemplatePreviewIframe({ html, style }: { html: string; style: SectionStyle }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(200);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'tpl-section-height' && typeof event.data.height === 'number') {
+        setHeight(Math.max(100, event.data.height + 10));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (iframeRef.current) {
+      const sanitized = sanitizeHTML(html);
+      const inlineStyles = [
+        style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
+        style.textColor ? `color: ${style.textColor};` : '',
+      ].filter(Boolean).join(' ');
+      const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
+      const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
+      const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
+      const fontClass = style.fontFamily || '';
+
+      const doc = iframeRef.current.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(`<!DOCTYPE html>
+<html><head>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body{font-family:'Inter',sans-serif;margin:0;padding:0;}</style>
+</head><body>
+  <div class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">
+    ${sanitized}
+  </div>
+  <script>
+    function h(){window.parent.postMessage({type:'tpl-section-height',height:document.documentElement.scrollHeight},'*')}
+    window.addEventListener('load',h);setTimeout(h,500);
+  <\/script>
+</body></html>`);
+        doc.close();
+      }
+    }
+  }, [html, style]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full border-0"
+      style={{ height: `${height}px` }}
+      sandbox="allow-scripts"
+      title="Aperçu de la section"
+    />
+  );
+}
+
+// Full template preview with all sections
+function FullTemplatePreview({
+  sections,
+  sectionPreviews,
+  sectionStyles,
+  name,
+  getSectionStyle,
+}: {
+  sections: TemplateSection[];
+  sectionPreviews: Record<string, string>;
+  sectionStyles: Record<string, SectionStyle>;
+  name: string;
+  getSectionStyle: (id: string) => SectionStyle;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(400);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'tpl-full-height' && typeof event.data.height === 'number') {
+        setHeight(Math.max(200, event.data.height + 20));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (iframeRef.current) {
+      let body = '';
+      sections.forEach((section) => {
+        const html = sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || '');
+        const style = getSectionStyle(section.id);
+        const inlineStyles = [
+          style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
+          style.textColor ? `color: ${style.textColor};` : '',
+        ].filter(Boolean).join(' ');
+        const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
+        const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
+        const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
+        const fontClass = style.fontFamily || '';
+        body += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">${html}</section>`;
+      });
+
+      const doc = iframeRef.current.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(`<!DOCTYPE html>
+<html><head>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body{font-family:'Inter',sans-serif;margin:0;padding:0;}</style>
+</head><body>
+  ${body}
+  <script>
+    function h(){window.parent.postMessage({type:'tpl-full-height',height:document.documentElement.scrollHeight},'*')}
+    window.addEventListener('load',h);setTimeout(h,500);
+  <\/script>
+</body></html>`);
+        doc.close();
+      }
+    }
+  }, [sections, sectionPreviews, sectionStyles]);
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-400" />
+          <div className="w-3 h-3 rounded-full bg-amber-400" />
+          <div className="w-3 h-3 rounded-full bg-green-400" />
+        </div>
+        <div className="flex-1 px-3 py-1 bg-white rounded-lg text-xs text-gray-500 font-mono">
+          Aperçu complet du modèle: {name || 'Sans titre'}
+        </div>
+      </div>
+      <iframe
+        ref={iframeRef}
+        className="w-full border-0"
+        style={{ height: `${height}px` }}
+        sandbox="allow-scripts"
+        title="Aperçu complet du modèle"
+      />
     </div>
   );
 }

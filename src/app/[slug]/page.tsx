@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { sanitizeHTMLServer } from '@/lib/sanitize';
 import { applyInternalLinks } from '@/lib/internal-links';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import type { SectionContent, TemplateSection } from '@/types/database';
+
+// Force dynamic rendering to avoid stale 404 caches
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -85,9 +89,9 @@ export default async function PublicPage({ params }: PageProps) {
     return sanitizeHTMLServer(processed);
   };
 
-  // Check if content contains HTML tags (beyond basic prose tags)
+  // Check if content contains HTML tags with class attributes (custom styled HTML)
   const hasCustomHTML = (html: string): boolean => {
-    return /<(?:div|section|article|header|footer|nav|aside|main|figure|span)[^>]*class=/i.test(html);
+    return /<[a-z][a-z0-9]*[^>]*class=/i.test(html);
   };
 
   // Build page HTML
@@ -95,8 +99,10 @@ export default async function PublicPage({ params }: PageProps) {
 
   return (
     <>
+      {/* Load Tailwind CDN for user-generated content with arbitrary classes */}
+      <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
       <PublicHeader />
-      <main className="min-h-screen">
+      <main className="min-h-screen pt-20">
         {/* If content uses custom HTML/Tailwind classes, render without prose wrapper */}
         {templateSections.length > 0 ? (
           <>
@@ -110,13 +116,13 @@ export default async function PublicPage({ params }: PageProps) {
                 )}
               </div>
             )}
-            {templateSections.map((section) => {
+            {templateSections.map((section, index) => {
               const content = sectionContents.find((sc) => sc.section_id === section.id);
               if (!content?.content) return null;
               const processed = processContent(content.content);
               const isCustom = hasCustomHTML(content.content);
               return (
-                <section key={section.id}>
+                <section key={section.id} className={index > 0 ? 'mt-8' : ''}>
                   {isCustom ? (
                     <div dangerouslySetInnerHTML={{ __html: processed }} />
                   ) : (
