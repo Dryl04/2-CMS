@@ -91,6 +91,21 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
     return sectionStyles[id] || DEFAULT_STYLE;
   };
 
+  // Charger les styles depuis le template au démarrage
+  useEffect(() => {
+    if (template?.sections) {
+      const loadedStyles: Record<string, SectionStyle> = {};
+      template.sections.forEach((section: any) => {
+        if (section.style) {
+          loadedStyles[section.id] = section.style;
+        }
+      });
+      if (Object.keys(loadedStyles).length > 0) {
+        setSectionStyles(loadedStyles);
+      }
+    }
+  }, [template?.id]);
+
   const updateSectionStyle = (id: string, updates: Partial<SectionStyle>) => {
     setSectionStyles((prev) => ({
       ...prev,
@@ -158,10 +173,16 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
     setIsSaving(true);
     const supabase = createClient();
 
+    // Ajouter les styles à chaque section avant la sauvegarde
+    const sectionsWithStyles = sections.map(section => ({
+      ...section,
+      style: getSectionStyle(section.id),
+    }));
+
     const data = {
       name: name.trim(),
       description: description.trim() || null,
-      sections,
+      sections: sectionsWithStyles,
       updated_at: new Date().toISOString(),
     };
 

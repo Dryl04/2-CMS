@@ -499,6 +499,15 @@ export default function PageEditor({ pageId }: PageEditorProps) {
             ? selectedTemplate.sections.find((s) => s.id === activeSectionId)?.type
             : undefined
         }
+        seoMetadata={{
+          title: pageData.title,
+          description: pageData.meta_description,
+          keywords: pageData.keywords,
+        }}
+        pageHeadings={{
+          h1: pageData.h1,
+          h2: pageData.h2,
+        }}
         onApplyContent={(html) => {
           if (selectedTemplate && sectionContents.length > 0) {
             // Apply to active section if exists, otherwise to first section

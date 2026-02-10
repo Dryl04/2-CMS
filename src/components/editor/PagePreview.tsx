@@ -30,12 +30,28 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
     }
 
     if (sections && sections.length > 0) {
-      sections.forEach((section, index) => {
+      sections.forEach((section: any, index) => {
         const html = getSectionContent(section.id);
         if (!html) return;
         const sanitized = sanitizeHTML(html);
-        const spacingClass = index > 0 ? ' mt-8' : '';
-        bodyContent += `<section class="${spacingClass}">${sanitized}</section>`;
+        
+        // Appliquer les styles sauvegardés si disponibles
+        const style = section.style;
+        const inlineStyles = [];
+        if (style?.backgroundColor) {
+          inlineStyles.push(`background-color: ${style.backgroundColor};`);
+        }
+        if (style?.textColor) {
+          inlineStyles.push(`color: ${style.textColor};`);
+        }
+        
+        const spacingClass = (style?.spacing && style.spacing !== '0') ? `mt-${style.spacing}` : (index > 0 ? ' mt-8' : '');
+        const paddingYClass = (style?.paddingY && style.paddingY !== '0') ? `py-${style.paddingY}` : '';
+        const paddingXClass = (style?.paddingX && style.paddingX !== '0') ? `px-${style.paddingX}` : '';
+        const fontClass = style?.fontFamily || '';
+        const styleAttr = inlineStyles.length > 0 ? ` style="${inlineStyles.join('')}"` : '';
+        
+        bodyContent += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}"${styleAttr}>${sanitized}</section>`;
       });
     } else if (page.content) {
       const sanitized = sanitizeHTML(page.content);
