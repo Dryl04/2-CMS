@@ -48,6 +48,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
   // Template section contents
   const [sectionContents, setSectionContents] = useState<SectionContent[]>([]);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -322,6 +323,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                       section={section}
                       content={sectionContents.find((sc) => sc.section_id === section.id) || { section_id: section.id, content: '' }}
                       onChange={updateSectionContent}
+                      onFocus={setActiveSectionId}
                     />
                   ))}
                 </div>
@@ -349,15 +351,18 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     </div>
                   </div>
                   {contentMode === 'visual' ? (
-                    <RichTextEditor
-                      content={pageData.content || ''}
-                      onChange={(html) => updateField('content', html)}
-                      placeholder="Rédigez le contenu de votre page..."
-                    />
+                    <div onFocus={() => setActiveSectionId(null)}>
+                      <RichTextEditor
+                        content={pageData.content || ''}
+                        onChange={(html) => updateField('content', html)}
+                        placeholder="Rédigez le contenu de votre page..."
+                      />
+                    </div>
                   ) : (
                     <textarea
                       value={pageData.content || ''}
                       onChange={(e) => updateField('content', e.target.value)}
+                      onFocus={() => setActiveSectionId(null)}
                       placeholder={'<div class="bg-blue-500 text-white p-8">\n  <h2 class="text-3xl font-bold">Mon titre</h2>\n  <p class="mt-4">Mon contenu avec Tailwind CSS...</p>\n</div>'}
                       className="w-full h-80 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
                       spellCheck={false}
@@ -489,12 +494,20 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       {/* AI Content Chat */}
       <AIContentChat
         currentContent={pageData.content || sectionContents.map((sc) => sc.content).join('\n')}
+        currentSectionType={
+          activeSectionId && selectedTemplate
+            ? selectedTemplate.sections.find((s) => s.id === activeSectionId)?.type
+            : undefined
+        }
         onApplyContent={(html) => {
           if (selectedTemplate && sectionContents.length > 0) {
-            // Find the first section and update its content
-            const firstSection = selectedTemplate.sections[0];
-            if (firstSection) {
-              updateSectionContent({ section_id: firstSection.id, content: html });
+            // Apply to active section if exists, otherwise to first section
+            const targetSection = activeSectionId 
+              ? selectedTemplate.sections.find((s) => s.id === activeSectionId)
+              : selectedTemplate.sections[0];
+            if (targetSection) {
+              updateSectionContent({ section_id: targetSection.id, content: html });
+              toast.success(`Contenu appliqué à "${targetSection.label}"`);
             }
           } else {
             updateField('content', html);

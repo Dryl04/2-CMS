@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Search, Trash2, Edit, Copy, Code, Eye, X, Save, Puzzle } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
@@ -9,6 +9,84 @@ import { generateId } from '@/lib/utils';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import type { ComponentBlock } from '@/types/database';
+
+function ComponentGridPreview({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const sanitized = sanitizeHTML(html);
+  const srcdoc = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }</style>
+</head>
+<body>
+  ${sanitized}
+</body>
+</html>`;
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full h-40 border-0 rounded-t-xl"
+      sandbox="allow-scripts"
+      srcDoc={srcdoc}
+      title="Aperçu"
+    />
+  );
+}
+
+function ComponentPreviewIframe({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(200);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'component-preview-height' && typeof event.data.height === 'number') {
+        setIframeHeight(Math.max(200, event.data.height + 20));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const sanitized = sanitizeHTML(html);
+  const srcdoc = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }</style>
+</head>
+<body>
+  ${sanitized}
+  <script>
+    function sendHeight() {
+      window.parent.postMessage({ type: 'component-preview-height', height: document.documentElement.scrollHeight }, '*');
+    }
+    window.addEventListener('load', sendHeight);
+    setTimeout(sendHeight, 500);
+    setTimeout(sendHeight, 1500);
+  <\/script>
+</body>
+</html>`;
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full border-0 rounded-xl"
+      style={{ height: `${iframeHeight}px`, minHeight: '200px' }}
+      sandbox="allow-scripts"
+      srcDoc={srcdoc}
+      title="Aperçu du composant"
+    />
+  );
+}
 
 const COMPONENT_CATEGORIES = [
   { value: 'hero', label: 'Hero / En-tête' },
@@ -226,13 +304,7 @@ export default function ComponentsPage() {
             {components.map((comp) => (
               <div key={comp.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 transition-colors">
                 {/* Preview */}
-                <div className="border-b border-gray-100 p-4 h-40 overflow-hidden relative">
-                  <div
-                    className="transform scale-50 origin-top-left w-[200%]"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(comp.html_content) }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white" />
-                </div>
+                <ComponentGridPreview html={comp.html_content} />
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -285,13 +357,7 @@ export default function ComponentsPage() {
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {DEFAULT_TEMPLATES.map((tmpl, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-gray-300 transition-colors">
-              <div className="border-b border-gray-100 p-4 h-40 overflow-hidden relative">
-                <div
-                  className="transform scale-50 origin-top-left w-[200%]"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHTML(tmpl.html) }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white" />
-              </div>
+              <ComponentGridPreview html={tmpl.html} />
               <div className="p-4">
                 <h3 className="font-bold text-gray-900 mb-1">{tmpl.name}</h3>
                 <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-md text-gray-500">
@@ -405,7 +471,7 @@ export default function ComponentsPage() {
               ) : (
                 <div className="border-2 border-gray-200 rounded-xl overflow-hidden min-h-[200px]">
                   {editingComponent.html_content ? (
-                    <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(editingComponent.html_content) }} />
+                    <ComponentPreviewIframe html={editingComponent.html_content} />
                   ) : (
                     <p className="text-gray-400 text-center py-12">Aucun contenu à prévisualiser</p>
                   )}
