@@ -69,6 +69,7 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
     window.addEventListener('load', sendHeight);
     new MutationObserver(sendHeight).observe(document.body, { childList: true, subtree: true });
     setTimeout(sendHeight, 500);
+    setTimeout(sendHeight, 1500);
   <\/script>
 </body>
 </html>`;
@@ -84,16 +85,7 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(buildPreviewHTML());
-        doc.close();
-      }
-    }
-  }, [page, sections, sectionContents]);
+  const srcdoc = buildPreviewHTML();
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -115,6 +107,7 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
         className="w-full border-0"
         style={{ height: `${iframeHeight}px` }}
         sandbox="allow-scripts"
+        srcDoc={srcdoc}
         title="Aperçu de la page"
       />
     </div>

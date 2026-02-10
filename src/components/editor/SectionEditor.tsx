@@ -29,13 +29,8 @@ function SectionPreviewIframe({ html }: { html: string }) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      const sanitized = sanitizeHTML(html);
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(`<!DOCTYPE html>
+  const sanitized = sanitizeHTML(html);
+  const srcdoc = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -52,13 +47,10 @@ function SectionPreviewIframe({ html }: { html: string }) {
     }
     window.addEventListener('load', sendHeight);
     setTimeout(sendHeight, 500);
+    setTimeout(sendHeight, 1500);
   <\/script>
 </body>
-</html>`);
-        doc.close();
-      }
-    }
-  }, [html]);
+</html>`;
 
   return (
     <iframe
@@ -66,6 +58,7 @@ function SectionPreviewIframe({ html }: { html: string }) {
       className="w-full border-0 rounded-xl"
       style={{ height: `${iframeHeight}px`, minHeight: '150px' }}
       sandbox="allow-scripts"
+      srcDoc={srcdoc}
       title="Aperçu de la section"
     />
   );

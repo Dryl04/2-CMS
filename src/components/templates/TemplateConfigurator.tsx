@@ -490,22 +490,17 @@ function TemplatePreviewIframe({ html, style }: { html: string; style: SectionSt
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      const sanitized = sanitizeHTML(html);
-      const inlineStyles = [
-        style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
-        style.textColor ? `color: ${style.textColor};` : '',
-      ].filter(Boolean).join(' ');
-      const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
-      const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
-      const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
-      const fontClass = style.fontFamily || '';
+  const sanitized = sanitizeHTML(html);
+  const inlineStyles = [
+    style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
+    style.textColor ? `color: ${style.textColor};` : '',
+  ].filter(Boolean).join(' ');
+  const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
+  const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
+  const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
+  const fontClass = style.fontFamily || '';
 
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(`<!DOCTYPE html>
+  const srcdoc = `<!DOCTYPE html>
 <html><head>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -516,13 +511,9 @@ function TemplatePreviewIframe({ html, style }: { html: string; style: SectionSt
   </div>
   <script>
     function h(){window.parent.postMessage({type:'tpl-section-height',height:document.documentElement.scrollHeight},'*')}
-    window.addEventListener('load',h);setTimeout(h,500);
+    window.addEventListener('load',h);setTimeout(h,500);setTimeout(h,1500);
   <\/script>
-</body></html>`);
-        doc.close();
-      }
-    }
-  }, [html, style]);
+</body></html>`;
 
   return (
     <iframe
@@ -530,6 +521,7 @@ function TemplatePreviewIframe({ html, style }: { html: string; style: SectionSt
       className="w-full border-0"
       style={{ height: `${height}px` }}
       sandbox="allow-scripts"
+      srcDoc={srcdoc}
       title="Aperçu de la section"
     />
   );
@@ -562,27 +554,22 @@ function FullTemplatePreview({
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      let body = '';
-      sections.forEach((section) => {
-        const html = sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || '');
-        const style = getSectionStyle(section.id);
-        const inlineStyles = [
-          style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
-          style.textColor ? `color: ${style.textColor};` : '',
-        ].filter(Boolean).join(' ');
-        const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
-        const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
-        const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
-        const fontClass = style.fontFamily || '';
-        body += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">${html}</section>`;
-      });
+  let body = '';
+  sections.forEach((section) => {
+    const html = sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || '');
+    const style = getSectionStyle(section.id);
+    const inlineStyles = [
+      style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
+      style.textColor ? `color: ${style.textColor};` : '',
+    ].filter(Boolean).join(' ');
+    const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
+    const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
+    const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
+    const fontClass = style.fontFamily || '';
+    body += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">${html}</section>`;
+  });
 
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(`<!DOCTYPE html>
+  const srcdoc = `<!DOCTYPE html>
 <html><head>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -591,13 +578,9 @@ function FullTemplatePreview({
   ${body}
   <script>
     function h(){window.parent.postMessage({type:'tpl-full-height',height:document.documentElement.scrollHeight},'*')}
-    window.addEventListener('load',h);setTimeout(h,500);
+    window.addEventListener('load',h);setTimeout(h,500);setTimeout(h,1500);
   <\/script>
-</body></html>`);
-        doc.close();
-      }
-    }
-  }, [sections, sectionPreviews, sectionStyles]);
+</body></html>`;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -616,6 +599,7 @@ function FullTemplatePreview({
         className="w-full border-0"
         style={{ height: `${height}px` }}
         sandbox="allow-scripts"
+        srcDoc={srcdoc}
         title="Aperçu complet du modèle"
       />
     </div>
