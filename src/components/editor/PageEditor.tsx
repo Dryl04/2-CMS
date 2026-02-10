@@ -10,6 +10,7 @@ import { slugify } from '@/lib/utils';
 import SEOFields from './SEOFields';
 import SectionEditor from './SectionEditor';
 import PagePreview from './PagePreview';
+import AIContentChat from './AIContentChat';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import type { SEOMetadata, PageTemplate, SectionContent, PageStatus } from '@/types/database';
 
@@ -173,7 +174,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
     const record = {
       page_key: pageData.page_key!.trim(),
-      slug: pageData.slug!.trim(),
+      slug: pageData.slug!.trim().replace(/\s+/g, '-'),
       title: pageData.title!.trim(),
       meta_description: pageData.meta_description!.trim(),
       h1: pageData.h1?.trim() || null,
@@ -484,6 +485,22 @@ export default function PageEditor({ pageId }: PageEditorProps) {
           </div>
         </div>
       </div>
+
+      {/* AI Content Chat */}
+      <AIContentChat
+        currentContent={pageData.content || sectionContents.map((sc) => sc.content).join('\n')}
+        onApplyContent={(html) => {
+          if (selectedTemplate && sectionContents.length > 0) {
+            // Find the first section and update its content
+            const firstSection = selectedTemplate.sections[0];
+            if (firstSection) {
+              updateSectionContent({ section_id: firstSection.id, content: html });
+            }
+          } else {
+            updateField('content', html);
+          }
+        }}
+      />
     </div>
   );
 }

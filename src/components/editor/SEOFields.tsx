@@ -49,7 +49,7 @@ export default function SEOFields({ data, onChange }: SEOFieldsProps) {
           <input
             type="text"
             value={data.slug || ''}
-            onChange={(e) => onChange('slug', e.target.value)}
+            onChange={(e) => onChange('slug', e.target.value.replace(/\s+/g, '-'))}
             placeholder="mon-url-page"
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900 font-mono text-sm"
           />

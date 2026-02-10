@@ -84,49 +84,49 @@
 }
 
 /* Styles pour le contenu public sans classe prose */
-main > div:not(.prose) p {
+.public-content p {
   margin-bottom: 1rem;
   line-height: 1.75;
 }
-main > div:not(.prose) h1 {
+.public-content h1 {
   font-size: 2.25rem;
   font-weight: 700;
   margin: 1.5rem 0 1rem;
 }
-main > div:not(.prose) h2 {
+.public-content h2 {
   font-size: 1.875rem;
   font-weight: 700;
   margin: 1.25rem 0 0.75rem;
 }
-main > div:not(.prose) h3 {
+.public-content h3 {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 1rem 0 0.5rem;
 }
-main > div:not(.prose) ul {
+.public-content ul {
   list-style: disc;
   padding-left: 2rem;
   margin: 1rem 0;
 }
-main > div:not(.prose) ol {
+.public-content ol {
   list-style: decimal;
   padding-left: 2rem;
   margin: 1rem 0;
 }
-main > div:not(.prose) li {
+.public-content li {
   margin-bottom: 0.5rem;
 }
-main > div:not(.prose) a {
+.public-content a {
   color: #2563eb;
   text-decoration: underline;
 }
-main > div:not(.prose) img {
+.public-content img {
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
   margin: 1rem 0;
 }
-main > div:not(.prose) blockquote {
+.public-content blockquote {
   border-left: 4px solid #e5e7eb;
   padding-left: 1rem;
   color: #6b7280;

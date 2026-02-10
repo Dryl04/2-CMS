@@ -102,7 +102,7 @@ export default async function PublicPage({ params }: PageProps) {
       {/* Load Tailwind CDN for user-generated content with arbitrary classes */}
       <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
       <PublicHeader />
-      <main className="min-h-screen pt-20">
+      <main className="min-h-screen pt-20 public-content">
         {/* If content uses custom HTML/Tailwind classes, render without prose wrapper */}
         {templateSections.length > 0 ? (
           <>
