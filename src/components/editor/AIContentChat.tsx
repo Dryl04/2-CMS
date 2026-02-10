@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Loader2, Settings2, X, Sparkles, Check, RotateCcw } from 'lucide-react';
+import { Send, Bot, Loader2, Settings2, X, Sparkles, Check, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type AIProvider = 'claude' | 'chatgpt' | 'gemini';
@@ -31,6 +31,8 @@ const PROVIDER_COLORS: Record<AIProvider, string> = {
 
 const STORAGE_KEY_PROVIDER = 'ai-chat-provider';
 const STORAGE_KEY_API_KEY_PREFIX = 'ai-chat-key-';
+/** Max characters of existing page content to send as context to the AI */
+const MAX_CONTEXT_LENGTH = 2000;
 
 export default function AIContentChat({ currentContent, onApplyContent }: AIContentChatProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -106,7 +108,7 @@ export default function AIContentChat({ currentContent, onApplyContent }: AICont
           prompt: trimmed,
           provider,
           apiKey,
-          context: currentContent ? `Contenu HTML actuel de la page:\n${currentContent.substring(0, 2000)}` : undefined,
+          context: currentContent ? `Contenu HTML actuel de la page:\n${currentContent.substring(0, MAX_CONTEXT_LENGTH)}` : undefined,
         }),
       });
 
@@ -278,7 +280,7 @@ export default function AIContentChat({ currentContent, onApplyContent }: AICont
                       }}
                       className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium"
                     >
-                      <RotateCcw className="w-3 h-3" />
+                      <PlusCircle className="w-3 h-3" />
                       Ajouter
                     </button>
                   </div>
