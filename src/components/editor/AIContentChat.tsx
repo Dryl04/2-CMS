@@ -1,11 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Loader2, Settings2, X, Sparkles, Check, PlusCircle } from 'lucide-react';
+import { Send, Bot, Loader2, Settings2, X, Sparkles, Check, PlusCircle, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SectionType } from '@/types/database';
 
-type AIProvider = 'claude' | 'chatgpt' | 'gemini';
+type AIProvider = 'claude' | 'chatgpt' | 'gemini' | string;
+
+interface CustomAIModel {
+  id: string;
+  name: string;
+  apiKey: string;
+  modelName: string; // Ex: "deepseek/DeepSeek-V3-0324" pour GitHub Models
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -33,6 +40,8 @@ const PROVIDER_COLORS: Record<AIProvider, string> = {
 
 const STORAGE_KEY_PROVIDER = 'ai-chat-provider';
 const STORAGE_KEY_API_KEY_PREFIX = 'ai-chat-key-';
+const STORAGE_KEY_CUSTOM_MODELS = 'ai-custom-models';
+const STORAGE_KEY_CUSTOM_MODEL_KEY = 'ai-custom-model-key-';
 /** Max characters of existing page content to send as context to the AI */
 const MAX_CONTEXT_LENGTH = 2000;
 
@@ -104,17 +113,31 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [customModels, setCustomModels] = useState<CustomAIModel[]>([]);
+  const [showAddCustomModel, setShowAddCustomModel] = useState(false);
+  const [newCustomModel, setNewCustomModel] = useState({ name: '', apiKey: '', modelName: '' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Load saved settings
   useEffect(() => {
     try {
+      // Load custom models
+      const savedCustomModels = localStorage.getItem(STORAGE_KEY_CUSTOM_MODELS);
+      if (savedCustomModels) {
+        setCustomModels(JSON.parse(savedCustomModels));
+      }
+
       const savedProvider = localStorage.getItem(STORAGE_KEY_PROVIDER) as AIProvider | null;
-      if (savedProvider && ['claude', 'chatgpt', 'gemini'].includes(savedProvider)) {
-        setProvider(savedProvider);
-        const savedKey = localStorage.getItem(STORAGE_KEY_API_KEY_PREFIX + savedProvider) || '';
-        setApiKey(savedKey);
+      if (savedProvider) {
+        const isStandardProvider = ['claude', 'chatgpt', 'gemini'].includes(savedProvider as string);
+        const isCustomProvider = savedCustomModels && JSON.parse(savedCustomModels).some((m: CustomAIModel) => m.id === savedProvider);
+        
+        if (isStandardProvider || isCustomProvider) {
+          setProvider(savedProvider);
+          const savedKey = localStorage.getItem(STORAGE_KEY_API_KEY_PREFIX + savedProvider) || '';
+          setApiKey(savedKey);
+        }
       }
     } catch {
       // localStorage not available
@@ -124,12 +147,67 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
   // Update API key when provider changes
   useEffect(() => {
     try {
-      const savedKey = localStorage.getItem(STORAGE_KEY_API_KEY_PREFIX + provider) || '';
-      setApiKey(savedKey);
+      const savedKey = localStorage.getItem(STORAGE_KEY_API_KEY_PREFIX + provider);
+      if (savedKey) {
+        setApiKey(savedKey);
+      } else {
+        // Check custom models
+        const customModel = customModels.find(m => m.id === provider);
+        if (customModel) {
+          setApiKey(customModel.apiKey);
+        } else {
+          setApiKey('');
+        }
+      }
     } catch {
       // localStorage not available
     }
-  }, [provider]);
+  }, [provider, customModels]);
+
+  const addCustomModel = () => {
+    if (!newCustomModel.name.trim() || !newCustomModel.apiKey.trim() || !newCustomModel.modelName.trim()) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+
+    try {
+      const id = `custom-${Date.now()}`;
+      const newModel: CustomAIModel = {
+        id,
+        name: newCustomModel.name.trim(),
+        apiKey: newCustomModel.apiKey.trim(),
+        modelName: newCustomModel.modelName.trim(),
+      };
+
+      const updatedModels = [...customModels, newModel];
+      setCustomModels(updatedModels);
+      localStorage.setItem(STORAGE_KEY_CUSTOM_MODELS, JSON.stringify(updatedModels));
+      localStorage.setItem(STORAGE_KEY_API_KEY_PREFIX + id, newModel.apiKey);
+
+      setNewCustomModel({ name: '', apiKey: '', modelName: '' });
+      setShowAddCustomModel(false);
+      setProvider(id);
+      toast.success(`Modèle IA "${newModel.name}" ajouté avec succès`);
+    } catch (err) {
+      toast.error('Erreur lors de l\'ajout du modèle');
+    }
+  };
+
+  const deleteCustomModel = (id: string) => {
+    try {
+      const updatedModels = customModels.filter(m => m.id !== id);
+      setCustomModels(updatedModels);
+      localStorage.setItem(STORAGE_KEY_CUSTOM_MODELS, JSON.stringify(updatedModels));
+      localStorage.removeItem(STORAGE_KEY_API_KEY_PREFIX + id);
+
+      if (provider === id) {
+        setProvider('chatgpt');
+      }
+      toast.success('Modèle supprimé');
+    } catch (err) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -163,6 +241,10 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
     setIsLoading(true);
 
     try {
+      // Récupérer le nom du modèle si c'est un custom model
+      const customModel = customModels.find(m => m.id === provider);
+      const modelName = customModel?.modelName;
+
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,6 +252,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
           prompt: trimmed,
           provider,
           apiKey,
+          modelName, // Sera undefined pour les providers standards
           context: currentContent ? `Contenu HTML actuel de la page:\n${currentContent.substring(0, MAX_CONTEXT_LENGTH)}` : undefined,
         }),
       });
@@ -209,7 +292,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white p-4 rounded-full shadow-lg transition-all hover:scale-105"
+        className="fixed bottom-6 right-6 z-40 bg-[#0E3A5D] hover:bg-[#0a2847] text-white p-4 rounded-full shadow-lg transition-all hover:scale-105"
         title="Assistant IA"
       >
         <Sparkles className="w-6 h-6" />
@@ -220,7 +303,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
   return (
     <div className="fixed bottom-6 right-6 z-40 w-96 max-h-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#0E3A5D] text-white">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5" />
           <span className="font-semibold text-sm">Assistant IA</span>
@@ -247,34 +330,111 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
+        <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3 max-h-96 overflow-y-auto">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Modèle IA</label>
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as AIProvider)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500"
-            >
-              <option value="chatgpt">ChatGPT (GPT-4o)</option>
-              <option value="claude">Claude (Sonnet)</option>
-              <option value="gemini">Gemini (Flash)</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#0E3A5D]"
+              >
+                <option value="chatgpt">ChatGPT (GPT-4o)</option>
+                <option value="claude">Claude (Sonnet)</option>
+                <option value="gemini">Gemini (Flash)</option>
+                {customModels.map(model => (
+                  <option key={model.id} value={model.id}>{model.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowAddCustomModel(!showAddCustomModel)}
+                className="px-3 py-2 bg-[#0E3A5D] hover:bg-[#0a2847] text-white rounded-lg text-sm font-medium flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
+
+          {showAddCustomModel && (
+            <div className="p-3 border border-gray-200 rounded-lg bg-white space-y-2">
+              <p className="text-xs text-gray-600 mb-2">Ajouter un modèle personnalisé depuis GitHub</p>
+              <input
+                type="text"
+                value={newCustomModel.name}
+                onChange={(e) => setNewCustomModel({...newCustomModel, name: e.target.value})}
+                placeholder="Ex: DeepSeek V3"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-[#0E3A5D]"
+              />
+              <input
+                type="text"
+                value={newCustomModel.modelName}
+                onChange={(e) => setNewCustomModel({...newCustomModel, modelName: e.target.value})}
+                placeholder="Ex: deepseek/DeepSeek-V3-0324"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-[#0E3A5D]"
+              />
+              <input
+                type="password"
+                value={newCustomModel.apiKey}
+                onChange={(e) => setNewCustomModel({...newCustomModel, apiKey: e.target.value})}
+                placeholder="Token GitHub"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-[#0E3A5D]"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={addCustomModel}
+                  className="flex-1 px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium"
+                >
+                  Ajouter
+                </button>
+                <button
+                  onClick={() => setShowAddCustomModel(false)}
+                  className="flex-1 px-2 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg text-xs font-medium"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+
+          {customModels.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-700">Modèles personnalisés</p>
+              <div className="space-y-1.5 bg-white p-2 rounded-lg max-h-40 overflow-y-auto border border-gray-200">
+                {customModels.map(model => (
+                  <div key={model.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-700 truncate">{model.name}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{model.modelName}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteCustomModel(model.id)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded flex-shrink-0 ml-2"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Clé API {PROVIDER_LABELS[provider]}
+              Clé API {PROVIDER_LABELS[provider as string] || 'personnalisée'}
             </label>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={`Entrez votre clé API ${PROVIDER_LABELS[provider]}...`}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-purple-500"
+              placeholder={`Entrez votre clé API ${PROVIDER_LABELS[provider as string] || 'personnalisée'}...`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#0E3A5D]"
             />
           </div>
           <button
             onClick={saveSettings}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="w-full bg-[#0E3A5D] hover:bg-[#0a2847] text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
             Sauvegarder
           </button>
@@ -285,7 +445,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px] max-h-[350px]">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <Sparkles className="w-8 h-8 text-purple-300 mx-auto mb-3" />
+            <Sparkles className="w-8 h-8 text-[#0E3A5D]/30 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
               {currentSectionType ? `Suggestions pour une section "${currentSectionType}"` : 'Décrivez le contenu que vous souhaitez générer pour votre page.'}
             </p>
@@ -294,7 +454,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
                 <button
                   key={i}
                   onClick={() => setInput(suggestion)}
-                  className="block w-full text-left text-xs text-purple-600 hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors"
+                  className="block w-full text-left text-xs text-[#0E3A5D] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   💡 {suggestion}
                 </button>
@@ -308,7 +468,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
             <div
               className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                 msg.role === 'user'
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-[#0E3A5D] text-white'
                   : 'bg-gray-100 text-gray-800'
               }`}
             >
@@ -353,7 +513,7 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-gray-100 rounded-xl px-3 py-2 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#0E3A5D]" />
               <span className="text-sm text-gray-500">Génération en cours...</span>
             </div>
           </div>
@@ -372,12 +532,12 @@ export default function AIContentChat({ currentContent, onApplyContent, currentS
             onKeyDown={handleKeyDown}
             placeholder="Décrivez le contenu souhaité..."
             rows={1}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-purple-500 resize-none max-h-20"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#0E3A5D] resize-none max-h-20"
           />
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="p-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-xl transition-colors"
+            className="p-2.5 bg-[#0E3A5D] hover:bg-[#0a2847] disabled:bg-gray-300 text-white rounded-xl transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>

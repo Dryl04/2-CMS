@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface AIRequestBody {
   prompt: string;
-  provider: 'claude' | 'chatgpt' | 'gemini';
+  provider: string; // Peut être 'claude' | 'chatgpt' | 'gemini' ou un ID custom
   apiKey: string;
   context?: string;
+  modelName?: string; // Pour les modèles GitHub custom
 }
 
 function buildSystemPrompt(context?: string): string {
@@ -100,6 +101,38 @@ async function callGemini(prompt: string, apiKey: string, context?: string): Pro
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
+async function callGitHubModel(prompt: string, apiKey: string, modelName: string, context?: string): Promise<string> {
+  const systemPrompt = buildSystemPrompt(context);
+  const response = await fetch(
+    'https://models.github.ai/inference/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 1.0,
+        top_p: 1.0,
+        max_tokens: 4096,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Erreur API GitHub Model: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 function extractHTML(text: string): string {
   const codeBlockMatch = text.match(/```(?:html)?\s*\n?([\s\S]*?)```/);
   if (codeBlockMatch) {
@@ -111,7 +144,7 @@ function extractHTML(text: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body: AIRequestBody = await request.json();
-    const { prompt, provider, apiKey, context } = body;
+    const { prompt, provider, apiKey, context, modelName } = body;
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: 'Le prompt est requis' }, { status: 400 });
@@ -119,24 +152,31 @@ export async function POST(request: NextRequest) {
     if (!apiKey?.trim()) {
       return NextResponse.json({ error: 'La clé API est requise' }, { status: 400 });
     }
-    if (!['claude', 'chatgpt', 'gemini'].includes(provider)) {
-      return NextResponse.json({ error: 'Fournisseur IA invalide' }, { status: 400 });
-    }
 
     let result: string;
+    const isStandardProvider = ['claude', 'chatgpt', 'gemini'].includes(provider);
 
-    switch (provider) {
-      case 'claude':
-        result = await callClaude(prompt, apiKey, context);
-        break;
-      case 'chatgpt':
-        result = await callChatGPT(prompt, apiKey, context);
-        break;
-      case 'gemini':
-        result = await callGemini(prompt, apiKey, context);
-        break;
-      default:
-        return NextResponse.json({ error: 'Fournisseur non supporté' }, { status: 400 });
+    if (isStandardProvider) {
+      // Providers standards
+      switch (provider) {
+        case 'claude':
+          result = await callClaude(prompt, apiKey, context);
+          break;
+        case 'chatgpt':
+          result = await callChatGPT(prompt, apiKey, context);
+          break;
+        case 'gemini':
+          result = await callGemini(prompt, apiKey, context);
+          break;
+        default:
+          return NextResponse.json({ error: 'Fournisseur non supporté' }, { status: 400 });
+      }
+    } else {
+      // Modèle custom (GitHub Models)
+      if (!modelName?.trim()) {
+        return NextResponse.json({ error: 'Le nom du modèle est requis pour les modèles personnalisés' }, { status: 400 });
+      }
+      result = await callGitHubModel(prompt, apiKey, modelName, context);
     }
 
     const html = extractHTML(result);
