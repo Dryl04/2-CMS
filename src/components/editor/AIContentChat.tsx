@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, Loader2, Settings2, X, Sparkles, Check, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import type { SectionType } from '@/types/database';
 
 type AIProvider = 'claude' | 'chatgpt' | 'gemini';
 
@@ -15,6 +16,7 @@ interface ChatMessage {
 interface AIContentChatProps {
   currentContent: string;
   onApplyContent: (html: string) => void;
+  currentSectionType?: SectionType;
 }
 
 const PROVIDER_LABELS: Record<AIProvider, string> = {
@@ -34,7 +36,67 @@ const STORAGE_KEY_API_KEY_PREFIX = 'ai-chat-key-';
 /** Max characters of existing page content to send as context to the AI */
 const MAX_CONTEXT_LENGTH = 2000;
 
-export default function AIContentChat({ currentContent, onApplyContent }: AIContentChatProps) {
+// Prompts suggérés par type de section
+const SECTION_PROMPTS: Record<SectionType, string[]> = {
+  hero: [
+    'Crée un hero moderne avec gradient bleu et violet',
+    'Génère un hero minimaliste avec fond blanc et image',
+    'Crée un hero avec vidéo en arrière-plan',
+  ],
+  rich_text: [
+    'Rédige 3 paragraphes sur les avantages de notre service',
+    'Crée une introduction engageante pour un article de blog',
+    'Génère un texte explicatif avec des bullet points',
+  ],
+  image_text: [
+    'Crée une section avec image à gauche et texte à droite',
+    'Génère un layout alterné avec 2 blocs image/texte',
+    'Crée une section avec image circulaire et description',
+  ],
+  cta: [
+    'Génère un CTA avec fond sombre et 2 boutons',
+    'Crée un appel à l\'action avec timer de compte à rebours',
+    'Génère un CTA minimaliste avec un seul bouton centré',
+  ],
+  faq: [
+    'Crée une FAQ avec 5 questions/réponses dépliables',
+    'Génère une FAQ en 2 colonnes avec 8 questions',
+    'Crée une FAQ avec icônes et animations',
+  ],
+  testimonials: [
+    'Génère 3 témoignages clients avec avatar et notation',
+    'Crée un carrousel de témoignages avec citations',
+    'Génère une grille de 4 avis clients avec photos',
+  ],
+  gallery: [
+    'Crée une galerie 3x3 d\'images avec hover effet',
+    'Génère une grille masonry de photos',
+    'Crée un portfolio avec filtres par catégorie',
+  ],
+  features: [
+    'Génère une grille de 6 fonctionnalités avec icônes',
+    'Crée 3 cartes de fonctionnalités principales',
+    'Génère une liste de features avec checkmarks',
+  ],
+  stats: [
+    'Crée 4 statistiques impressionnantes avec chiffres animés',
+    'Génère des KPIs avec graphiques et couleurs',
+    'Crée une section de métriques avec icônes',
+  ],
+  contact: [
+    'Génère un formulaire de contact avec validation',
+    'Crée une section contact avec carte et infos',
+    'Génère un formulaire moderne avec champs stylisés',
+  ],
+};
+
+const DEFAULT_PROMPTS = [
+  'Crée un hero moderne avec un gradient bleu',
+  'Génère une section FAQ avec 5 questions',
+  'Crée une grille de 3 fonctionnalités avec icônes',
+];
+
+export default function AIContentChat({ currentContent, onApplyContent, currentSectionType }: AIContentChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState<AIProvider>('chatgpt');
@@ -225,14 +287,10 @@ export default function AIContentChat({ currentContent, onApplyContent }: AICont
           <div className="text-center py-8">
             <Sparkles className="w-8 h-8 text-purple-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
-              Décrivez le contenu que vous souhaitez générer pour votre page.
+              {currentSectionType ? `Suggestions pour une section "${currentSectionType}"` : 'Décrivez le contenu que vous souhaitez générer pour votre page.'}
             </p>
-            <div className="mt-3 space-y-1.5">
-              {[
-                'Crée un hero moderne avec un gradient bleu',
-                'Génère une section FAQ avec 5 questions',
-                'Crée une grille de 3 fonctionnalités avec icônes',
-              ].map((suggestion, i) => (
+            <div className="mt-3 space-y-1.5 max-h-[180px] overflow-y-auto">
+              {(currentSectionType ? SECTION_PROMPTS[currentSectionType] : DEFAULT_PROMPTS).map((suggestion, i) => (
                 <button
                   key={i}
                   onClick={() => setInput(suggestion)}

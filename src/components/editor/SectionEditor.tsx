@@ -11,6 +11,7 @@ interface SectionEditorProps {
   section: TemplateSection;
   content: SectionContent;
   onChange: (content: SectionContent) => void;
+  onFocus?: (sectionId: string) => void;
 }
 
 type SectionMode = 'visual' | 'code' | 'preview';
@@ -64,11 +65,15 @@ function SectionPreviewIframe({ html }: { html: string }) {
   );
 }
 
-export default function SectionEditor({ section, content, onChange }: SectionEditorProps) {
+export default function SectionEditor({ section, content, onChange, onFocus }: SectionEditorProps) {
   const [mode, setMode] = useState<SectionMode>('visual');
   const wordCount = countWords(content.content || '');
   const isUnderMin = section.min_words > 0 && wordCount < section.min_words;
   const isOverMax = section.max_words > 0 && wordCount > section.max_words;
+
+  const handleFocus = () => {
+    onFocus?.(section.id);
+  };
 
   return (
     <div className="border border-gray-200 rounded-xl p-5">
@@ -116,17 +121,20 @@ export default function SectionEditor({ section, content, onChange }: SectionEdi
       </div>
 
       {mode === 'visual' && (
-        <RichTextEditor
-          content={content.content || ''}
-          onChange={(html) => onChange({ ...content, section_id: section.id, content: html })}
-          placeholder={`Contenu de la section "${section.label}"...`}
-        />
+        <div onFocus={handleFocus}>
+          <RichTextEditor
+            content={content.content || ''}
+            onChange={(html) => onChange({ ...content, section_id: section.id, content: html })}
+            placeholder={`Contenu de la section "${section.label}"...`}
+          />
+        </div>
       )}
 
       {mode === 'code' && (
         <textarea
           value={content.content || ''}
           onChange={(e) => onChange({ ...content, section_id: section.id, content: e.target.value })}
+          onFocus={handleFocus}
           placeholder={`<div class="bg-white p-8">&#10;  <h2 class="text-2xl font-bold">Section ${section.label}</h2>&#10;</div>`}
           className="w-full h-48 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
           spellCheck={false}
