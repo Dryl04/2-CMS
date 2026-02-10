@@ -501,12 +501,12 @@ export default function PageEditor({ pageId }: PageEditorProps) {
         }
         seoMetadata={{
           title: pageData.title,
-          description: pageData.meta_description,
+          description: pageData.meta_description || undefined,
           keywords: pageData.keywords,
         }}
         pageHeadings={{
-          h1: pageData.h1,
-          h2: pageData.h2,
+          h1: pageData.h1 || undefined,
+          h2: pageData.h2 || undefined,
         }}
         onApplyContent={(html) => {
           if (selectedTemplate && sectionContents.length > 0) {
