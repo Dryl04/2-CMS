@@ -173,7 +173,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
     const record = {
       page_key: pageData.page_key!.trim(),
-      slug: pageData.slug!.trim(),
+      slug: pageData.slug!.trim().replace(/\s+/g, '-'),
       title: pageData.title!.trim(),
       meta_description: pageData.meta_description!.trim(),
       h1: pageData.h1?.trim() || null,
