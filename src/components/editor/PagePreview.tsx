@@ -21,6 +21,7 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
   // Build the full HTML for the preview
   const buildPreviewHTML = (): string => {
     let bodyContent = '';
+    let customStyles = '';
 
     if (page.h1) {
       bodyContent += `<div class="max-w-3xl mx-auto px-8 pt-8"><h1 class="text-3xl font-bold text-gray-900 mb-4">${escapeForHTML(page.h1)}</h1></div>`;
@@ -37,21 +38,41 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
         
         // Appliquer les styles sauvegardés si disponibles
         const style = section.style;
-        const inlineStyles = [];
+        const sectionClass = `preview-section-${index}`;
+        
         if (style?.backgroundColor) {
-          inlineStyles.push(`background-color: ${style.backgroundColor};`);
+          customStyles += `
+            .${sectionClass} {
+              background-color: ${style.backgroundColor} !important;
+            }
+            .${sectionClass} *,
+            .${sectionClass} > * {
+              background: transparent !important;
+              background-color: transparent !important;
+              background-image: none !important;
+            }`;
         }
         if (style?.textColor) {
-          inlineStyles.push(`color: ${style.textColor};`);
+          customStyles += `
+            .${sectionClass},
+            .${sectionClass} *,
+            .${sectionClass} h1,
+            .${sectionClass} h2,
+            .${sectionClass} h3,
+            .${sectionClass} p,
+            .${sectionClass} span,
+            .${sectionClass} a,
+            .${sectionClass} div {
+              color: ${style.textColor} !important;
+            }`;
         }
         
         const spacingClass = (style?.spacing && style.spacing !== '0') ? `mt-${style.spacing}` : (index > 0 ? ' mt-8' : '');
         const paddingYClass = (style?.paddingY && style.paddingY !== '0') ? `py-${style.paddingY}` : '';
         const paddingXClass = (style?.paddingX && style.paddingX !== '0') ? `px-${style.paddingX}` : '';
         const fontClass = style?.fontFamily || '';
-        const styleAttr = inlineStyles.length > 0 ? ` style="${inlineStyles.join('')}"` : '';
         
-        bodyContent += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}"${styleAttr}>${sanitized}</section>`;
+        bodyContent += `<section class="${sectionClass} ${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}">${sanitized}</section>`;
       });
     } else if (page.content) {
       const sanitized = sanitizeHTML(page.content);
@@ -73,6 +94,7 @@ export default function PagePreview({ page, sections, sectionContents }: PagePre
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; }
     img { max-width: 100%; height: auto; }
     a { color: #2563eb; text-decoration: underline; }
+    ${customStyles}
   </style>
 </head>
 <body>

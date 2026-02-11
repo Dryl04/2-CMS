@@ -512,10 +512,36 @@ function TemplatePreviewIframe({ html, style }: { html: string; style: SectionSt
   }, []);
 
   const sanitized = sanitizeHTML(html);
-  const inlineStyles = [
-    style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
-    style.textColor ? `color: ${style.textColor};` : '',
-  ].filter(Boolean).join(' ');
+  
+  // Construire les styles CSS - background sur le conteneur, texte sur tous les éléments
+  let customStyles = '';
+  if (style.backgroundColor) {
+    customStyles += `
+      .preview-wrapper {
+        background-color: ${style.backgroundColor} !important;
+      }
+      .preview-wrapper *,
+      .preview-wrapper > * {
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+      }`;
+  }
+  if (style.textColor) {
+    customStyles += `
+      .preview-wrapper,
+      .preview-wrapper *,
+      .preview-wrapper h1,
+      .preview-wrapper h2,
+      .preview-wrapper h3,
+      .preview-wrapper p,
+      .preview-wrapper span,
+      .preview-wrapper a,
+      .preview-wrapper div {
+        color: ${style.textColor} !important;
+      }`;
+  }
+  
   const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
   const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
   const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
@@ -525,9 +551,16 @@ function TemplatePreviewIframe({ html, style }: { html: string; style: SectionSt
 <html><head>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>body{font-family:'Inter',sans-serif;margin:0;padding:0;}</style>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    ${customStyles}
+  </style>
 </head><body>
-  <div class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">
+  <div class="preview-wrapper ${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}">
     ${sanitized}
   </div>
   <script>
@@ -576,25 +609,62 @@ function FullTemplatePreview({
   }, []);
 
   let body = '';
-  sections.forEach((section) => {
+  let customStyles = '';
+  
+  sections.forEach((section, idx) => {
     const html = sanitizeHTML(sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || '');
     const style = getSectionStyle(section.id);
-    const inlineStyles = [
-      style.backgroundColor ? `background-color: ${style.backgroundColor};` : '',
-      style.textColor ? `color: ${style.textColor};` : '',
-    ].filter(Boolean).join(' ');
+    
+    // Générer des styles CSS spécifiques pour chaque section
+    const sectionClass = `section-${idx}`;
+    
+    if (style.backgroundColor) {
+      customStyles += `
+        .${sectionClass} {
+          background-color: ${style.backgroundColor} !important;
+        }
+        .${sectionClass} *,
+        .${sectionClass} > * {
+          background: transparent !important;
+          background-color: transparent !important;
+          background-image: none !important;
+        }`;
+    }
+    if (style.textColor) {
+      customStyles += `
+        .${sectionClass},
+        .${sectionClass} *,
+        .${sectionClass} h1,
+        .${sectionClass} h2,
+        .${sectionClass} h3,
+        .${sectionClass} p,
+        .${sectionClass} span,
+        .${sectionClass} a,
+        .${sectionClass} div {
+          color: ${style.textColor} !important;
+        }`;
+    }
+    
     const spacingClass = style.spacing !== '0' ? `mt-${style.spacing}` : '';
     const paddingYClass = style.paddingY !== '0' ? `py-${style.paddingY}` : '';
     const paddingXClass = style.paddingX !== '0' ? `px-${style.paddingX}` : '';
     const fontClass = style.fontFamily || '';
-    body += `<section class="${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}" style="${inlineStyles}">${html}</section>`;
+    
+    body += `<section class="${sectionClass} ${spacingClass} ${paddingYClass} ${paddingXClass} ${fontClass}">${html}</section>`;
   });
 
   const srcdoc = `<!DOCTYPE html>
 <html><head>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>body{font-family:'Inter',sans-serif;margin:0;padding:0;}</style>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    ${customStyles}
+  </style>
 </head><body>
   ${body}
   <script>
