@@ -92,7 +92,7 @@ export default function PageList({ pages, onRefresh }: PageListProps) {
 
               <div className="flex items-center gap-1 flex-shrink-0">
                 {page.status === 'published' && (
-                  <a href={`/${page.page_key}`} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-gray-100 rounded-lg" title="Voir la page">
+                  <a href={`/${page.slug}`} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-gray-100 rounded-lg" title="Voir la page">
                     <ExternalLink className="w-4 h-4 text-gray-500" />
                   </a>
                 )}

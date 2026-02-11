@@ -1,55 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, FileText, Trash2, Edit, Copy } from 'lucide-react';
+import { Plus, FileText, Trash2, Edit, Copy, Download, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import type { PageTemplate, SectionType } from '@/types/database';
-
-const SECTION_DEFAULTS: Record<SectionType, string> = {
-  hero: '<div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-10 px-4 text-center rounded-xl"><h1 class="text-2xl font-bold mb-2">Titre Principal</h1><p class="text-sm opacity-90">Description accrocheur</p></div>',
-  rich_text: '<div class="p-4"><h2 class="text-lg font-bold mb-2">Titre de section</h2><p class="text-gray-600 text-sm">Contenu texte ici.</p></div>',
-  image_text: '<div class="flex gap-4 items-center p-4"><div class="w-1/2 bg-gray-200 rounded-lg h-20"></div><div class="w-1/2"><h2 class="text-lg font-bold mb-1">Titre</h2><p class="text-gray-600 text-xs">Description</p></div></div>',
-  cta: '<div class="bg-gray-900 text-white py-8 px-4 text-center rounded-xl"><h2 class="text-xl font-bold mb-2">Prêt à commencer ?</h2><span class="inline-block px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg">Démarrer</span></div>',
-  faq: '<div class="p-4 space-y-2"><h2 class="text-lg font-bold mb-2">FAQ</h2><div class="border border-gray-200 rounded-lg p-2"><p class="font-semibold text-sm">Question 1 ?</p></div><div class="border border-gray-200 rounded-lg p-2"><p class="font-semibold text-sm">Question 2 ?</p></div></div>',
-  testimonials: '<div class="grid grid-cols-2 gap-2 p-4"><div class="bg-gray-50 p-3 rounded-lg"><p class="text-gray-600 italic text-xs">"Excellent !"</p><p class="mt-1 font-semibold text-xs">— Client</p></div><div class="bg-gray-50 p-3 rounded-lg"><p class="text-gray-600 italic text-xs">"Remarquable."</p><p class="mt-1 font-semibold text-xs">— Client</p></div></div>',
-  gallery: '<div class="grid grid-cols-3 gap-2 p-4"><div class="bg-gray-200 rounded-lg h-12"></div><div class="bg-gray-200 rounded-lg h-12"></div><div class="bg-gray-200 rounded-lg h-12"></div></div>',
-  features: '<div class="grid grid-cols-3 gap-3 p-4"><div class="text-center"><div class="w-8 h-8 bg-blue-100 rounded-lg mx-auto mb-1"></div><p class="font-bold text-xs">Feature 1</p></div><div class="text-center"><div class="w-8 h-8 bg-green-100 rounded-lg mx-auto mb-1"></div><p class="font-bold text-xs">Feature 2</p></div><div class="text-center"><div class="w-8 h-8 bg-purple-100 rounded-lg mx-auto mb-1"></div><p class="font-bold text-xs">Feature 3</p></div></div>',
-  stats: '<div class="grid grid-cols-4 gap-2 text-center p-4"><div><p class="text-lg font-bold text-blue-600">99%</p><p class="text-gray-500 text-xs">Stat</p></div><div><p class="text-lg font-bold text-green-600">10K+</p><p class="text-gray-500 text-xs">Stat</p></div><div><p class="text-lg font-bold text-purple-600">50+</p><p class="text-gray-500 text-xs">Stat</p></div><div><p class="text-lg font-bold text-amber-600">24/7</p><p class="text-gray-500 text-xs">Stat</p></div></div>',
-  contact: '<div class="p-4 text-center"><h2 class="text-lg font-bold mb-2">Contact</h2><div class="space-y-1"><div class="h-6 bg-gray-100 rounded"></div><div class="h-6 bg-gray-100 rounded"></div></div></div>',
-};
-
-function TemplateCardPreview({ template }: { template: PageTemplate }) {
-  const srcdoc = `<!DOCTYPE html>
-<html><head>
-  <script src="https://cdn.tailwindcss.com"><\/script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>body{font-family:'Inter',sans-serif;margin:0;padding:0;overflow:hidden;}</style>
-</head><body>
-  ${template.sections.map((s) => SECTION_DEFAULTS[s.type] || '').join('')}
-</body></html>`;
-
-  return (
-    <div className="h-36 overflow-hidden border-b border-gray-100 bg-gray-50 relative">
-      <iframe
-        className="w-full border-0 pointer-events-none"
-        style={{ height: '300px', transform: 'scale(0.48)', transformOrigin: 'top left', width: '208%' }}
-        sandbox="allow-scripts"
-        srcDoc={srcdoc}
-        title={`Aperçu ${template.name}`}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white" />
-    </div>
-  );
-}
+import TemplateCardPreview from '@/components/templates/TemplateCardPreview';
+import type { PageTemplate } from '@/types/database';
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<PageTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadTemplates = async () => {
     const supabase = createClient();
@@ -77,7 +42,7 @@ export default function TemplatesPage() {
     if (error) {
       toast.error('Erreur: ' + error.message);
     } else {
-      toast.success('Modèle supprimé');
+      toast.success('Modele supprime');
       setTemplates(templates.filter((t) => t.id !== deleteId));
     }
     setDeleteId(null);
@@ -93,9 +58,58 @@ export default function TemplatesPage() {
     if (error) {
       toast.error('Erreur: ' + error.message);
     } else {
-      toast.success('Modèle dupliqué');
+      toast.success('Modele duplique');
       loadTemplates();
     }
+  };
+
+  const handleExportTemplate = (template: PageTemplate) => {
+    const exportData = {
+      name: template.name,
+      description: template.description,
+      sections: template.sections,
+      exported_at: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `template-${template.name.replace(/\s+/g, '-').toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Modele exporte');
+  };
+
+  const handleImportTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        const supabase = createClient();
+
+        const { error } = await supabase.from('page_templates').insert({
+          name: data.name || 'Modele importe',
+          description: data.description || null,
+          sections: data.sections || [],
+        });
+
+        if (error) {
+          toast.error('Erreur: ' + error.message);
+        } else {
+          toast.success('Modele importe avec succes');
+          loadTemplates();
+        }
+      } catch {
+        toast.error('Fichier JSON invalide');
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input to allow re-importing same file
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (isLoading) return <LoadingSpinner />;
@@ -104,29 +118,45 @@ export default function TemplatesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Modèles de pages</h1>
-          <p className="text-gray-500 mt-1">Créez des structures réutilisables pour vos pages SEO</p>
+          <h1 className="text-2xl font-bold text-gray-900">Modeles de pages</h1>
+          <p className="text-gray-500 mt-1">Creez des structures reutilisables pour vos pages SEO</p>
         </div>
-        <Link
-          href="/admin/templates/new"
-          className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-3 rounded-xl font-medium flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nouveau modèle
-        </Link>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportTemplate}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
+          >
+            <Upload className="w-4 h-4" />
+            Importer
+          </button>
+          <Link
+            href="/admin/templates/new"
+            className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-3 rounded-xl font-medium flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nouveau modele
+          </Link>
+        </div>
       </div>
 
       {templates.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
           <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun modèle</h3>
-          <p className="text-gray-500 mb-6">Créez votre premier modèle pour structurer vos pages SEO</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun modele</h3>
+          <p className="text-gray-500 mb-6">Creez votre premier modele pour structurer vos pages SEO</p>
           <Link
             href="/admin/templates/new"
             className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-5 py-3 rounded-xl font-medium"
           >
             <Plus className="w-5 h-5" />
-            Créer un modèle
+            Creer un modele
           </Link>
         </div>
       ) : (
@@ -165,6 +195,13 @@ export default function TemplatesPage() {
                     Modifier
                   </Link>
                   <button
+                    onClick={() => handleExportTemplate(template)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-lg"
+                    title="Exporter"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDuplicate(template)}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 rounded-lg"
                     title="Dupliquer"
@@ -187,8 +224,8 @@ export default function TemplatesPage() {
 
       <ConfirmDialog
         isOpen={!!deleteId}
-        title="Supprimer le modèle"
-        message="Cette action est irréversible. Voulez-vous vraiment supprimer ce modèle ?"
+        title="Supprimer le modele"
+        message="Cette action est irreversible. Voulez-vous vraiment supprimer ce modele ?"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

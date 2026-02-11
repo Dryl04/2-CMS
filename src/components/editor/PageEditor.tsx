@@ -11,6 +11,7 @@ import SEOFields from './SEOFields';
 import SectionEditor from './SectionEditor';
 import PagePreview from './PagePreview';
 import AIContentChat from './AIContentChat';
+import TemplateCardPreview, { TEMPLATE_PREVIEW_DEFAULTS } from '@/components/templates/TemplateCardPreview';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import type { SEOMetadata, PageTemplate, SectionContent, PageStatus } from '@/types/database';
 
@@ -115,12 +116,16 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     setSelectedTemplate(tpl);
     updateField('template_id', templateId || null);
 
-    // Initialize section contents for new template
+    // Initialize section contents for new template with default content
     if (tpl) {
       const existingIds = sectionContents.map((sc) => sc.section_id);
       const newContents = tpl.sections
         .filter((s) => !existingIds.includes(s.id))
-        .map((s) => ({ section_id: s.id, content: '' }));
+        .map((s) => ({
+          section_id: s.id,
+          type: s.type,
+          content: TEMPLATE_PREVIEW_DEFAULTS[s.type] || '',
+        }));
       setSectionContents([...sectionContents, ...newContents]);
     }
   };
@@ -224,6 +229,9 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     );
   }
 
+  // Build full URL path from slug (which can now contain slashes)
+  const fullUrlPath = pageData.slug ? (pageData.slug.startsWith('/') ? pageData.slug : '/' + pageData.slug) : '';
+
   const tabs = [
     { id: 'seo' as const, label: 'SEO & Méta', icon: Settings },
     { id: 'content' as const, label: 'Contenu', icon: FileText },
@@ -242,9 +250,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
             <h1 className="text-2xl font-bold text-gray-900">
               {pageId ? 'Modifier la page' : 'Nouvelle page'}
             </h1>
-            {pageData.slug && (
-              <p className="text-sm text-gray-500 font-mono">/{pageData.slug}</p>
-            )}
+
           </div>
         </div>
 
@@ -297,21 +303,62 @@ export default function PageEditor({ pageId }: PageEditorProps) {
 
           {activeTab === 'content' && (
             <div className="space-y-4">
-              {/* Template selector */}
+              {/* Page headings */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Modèle de page</label>
-                <select
-                  value={selectedTemplate?.id || ''}
-                  onChange={(e) => handleTemplateChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
-                >
-                  <option value="">Aucun modèle (contenu libre)</option>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Titres de la page</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Titre H1 (titre principal visible)</label>
+                    <input
+                      type="text"
+                      value={pageData.h1 || ''}
+                      onChange={(e) => updateField('h1', e.target.value)}
+                      placeholder="Titre principal de la page"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Sous-titre H2</label>
+                    <input
+                      type="text"
+                      value={pageData.h2 || ''}
+                      onChange={(e) => updateField('h2', e.target.value)}
+                      placeholder="Sous-titre de la page"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Vous pouvez ajouter des H2 supplémentaires directement dans le contenu de la page</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Template selector - visual grid */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">Modele de page</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {/* No template option */}
+                  <button
+                    type="button"
+                    onClick={() => handleTemplateChange('')}
+                    className={`border-2 rounded-xl p-3 text-center transition-colors ${!selectedTemplate ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div className="h-20 flex items-center justify-center text-gray-400">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <p className="text-xs font-medium mt-2">Contenu libre</p>
+                  </button>
+                  {/* Template cards with previews */}
                   {templates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name} ({tpl.sections.length} sections)
-                    </option>
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => handleTemplateChange(tpl.id)}
+                      className={`border-2 rounded-xl overflow-hidden transition-colors text-left ${selectedTemplate?.id === tpl.id ? 'border-gray-900' : 'border-gray-200 hover:border-gray-300'}`}
+                    >
+                      <TemplateCardPreview template={tpl} />
+                      <p className="text-xs font-medium p-2 truncate">{tpl.name}</p>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               {/* Section editors or free content */}

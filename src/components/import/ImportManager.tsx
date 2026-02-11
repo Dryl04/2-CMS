@@ -36,7 +36,7 @@ export default function ImportManager() {
   const [errors, setErrors] = useState<ImportError[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [importResults, setImportResults] = useState<{ success: number; failed: number } | null>(null);
+  const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: { row: string; message: string }[] } | null>(null);
   const [fileName, setFileName] = useState('');
 
   const REQUIRED_FIELDS = ['page_key', 'slug', 'title', 'meta_description'];
@@ -196,6 +196,7 @@ export default function ImportManager() {
     const supabase = createClient();
     let success = 0;
     let failed = 0;
+    const importErrors: { row: string; message: string }[] = [];
 
     for (const row of rawData) {
       const record: Partial<SEOMetadata> = {
@@ -208,21 +209,24 @@ export default function ImportManager() {
             ? row.keywords
             : row.keywords.split(',').map((k) => k.trim()).filter(Boolean)
           : [],
-        h1: row.h1 || row.title || null,
+        h1: row.h1 || null,
         h2: row.h2 || null,
+        content: row.content || null,
         canonical_url: row.canonical_url || null,
         status: (row.status as SEOMetadata['status']) || 'draft',
+        imported_at: new Date().toISOString(),
       };
 
       const { error } = await supabase.from('seo_metadata').upsert(record, { onConflict: 'page_key' });
       if (error) {
         failed++;
+        importErrors.push({ row: row.page_key, message: error.message });
       } else {
         success++;
       }
     }
 
-    setImportResults({ success, failed });
+    setImportResults({ success, failed, errors: importErrors });
     setIsImporting(false);
 
     if (failed === 0) {
@@ -409,14 +413,24 @@ export default function ImportManager() {
       {importResults && (
         <div className={`rounded-2xl p-6 ${importResults.failed === 0 ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
           <h3 className="font-bold text-lg mb-2">
-            {importResults.failed === 0 ? '✅ Import terminé' : '⚠️ Import terminé avec des erreurs'}
+            {importResults.failed === 0 ? 'Import termine' : 'Import termine avec des erreurs'}
           </h3>
           <p>
-            <strong>{importResults.success}</strong> page(s) importée(s) avec succès
+            <strong>{importResults.success}</strong> page(s) importee(s) avec succes
             {importResults.failed > 0 && (
-              <>, <strong className="text-red-600">{importResults.failed}</strong> échec(s)</>
+              <>, <strong className="text-red-600">{importResults.failed}</strong> echec(s)</>
             )}
           </p>
+          {importResults.errors.length > 0 && (
+            <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+              {importResults.errors.map((err, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm px-3 py-2 rounded-lg bg-red-50 text-red-700">
+                  <span className="font-mono text-xs font-medium">{err.row}:</span>
+                  <span>{err.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
