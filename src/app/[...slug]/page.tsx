@@ -12,54 +12,86 @@ import type { SectionContent, TemplateSection } from '@/types/database';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string[] }>;
+}
+
+/**
+ * Find a page by its complete slug path.
+ * The slug field now stores the complete URL path (e.g., "blog/tech/article")
+ */
+async function findPageBySlugPath(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  slugSegments: string[],
+  filters?: { status?: string; is_public?: boolean }
+) {
+  // Join slug segments to create the complete path
+  const fullSlugPath = slugSegments.join('/');
+
+  // Query directly by the complete slug
+  let query = supabase
+    .from('seo_metadata')
+    .select('*')
+    .eq('slug', fullSlugPath);
+
+  if (filters?.status) query = query.eq('status', filters.status);
+  if (filters?.is_public !== undefined) query = query.eq('is_public', filters.is_public);
+
+  const { data } = await query.single();
+  return data || null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: slugSegments } = await params;
   const supabase = await createServerClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
 
-  const { data: page } = await supabase
-    .from('seo_metadata')
-    .select('title, meta_description, keywords, canonical_url, slug, h1')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single();
+  const page = await findPageBySlugPath(supabase, slugSegments, { status: 'published' });
 
-  if (!page) return { title: 'Page non trouvée' };
+  if (!page) return { title: 'Page non trouvee' };
+
+  const fullPath = slugSegments.join('/');
 
   return {
     title: page.title,
     description: page.meta_description,
     keywords: page.keywords?.join(', '),
     alternates: {
-      canonical: page.canonical_url || `${siteUrl}/${page.slug}`,
+      canonical: page.canonical_url || `${siteUrl}/${fullPath}`,
     },
     openGraph: {
       title: page.title,
       description: page.meta_description || undefined,
-      url: `${siteUrl}/${page.slug}`,
+      url: `${siteUrl}/${fullPath}`,
       type: 'website',
     },
   };
 }
 
 export default async function PublicPage({ params }: PageProps) {
-  const { slug } = await params;
+  const { slug: slugSegments } = await params;
   const supabase = await createServerClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
 
   // Load page data — show published pages that are public
-  const { data: page, error } = await supabase
-    .from('seo_metadata')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .eq('is_public', true)
-    .single();
+  const page = await findPageBySlugPath(supabase, slugSegments, {
+    status: 'published',
+    is_public: true,
+  });
 
-  if (!page || error) notFound();
+  if (!page) notFound();
+
+  // Load all pages for internal links mapping (page_key -> slug)
+  const { data: allPages } = await supabase
+    .from('seo_metadata')
+    .select('page_key, slug')
+    .eq('status', 'published');
+
+  const pageKeyToSlug: Record<string, string> = {};
+  if (allPages) {
+    for (const p of allPages) {
+      pageKeyToSlug[p.page_key] = p.slug;
+    }
+  }
 
   // Load internal link rules
   const { data: linkRules } = await supabase
@@ -84,7 +116,7 @@ export default async function PublicPage({ params }: PageProps) {
   const processContent = (html: string): string => {
     let processed = html;
     if (linkRules && linkRules.length > 0) {
-      processed = applyInternalLinks(processed, linkRules, siteUrl);
+      processed = applyInternalLinks(processed, linkRules, siteUrl, pageKeyToSlug);
     }
     return sanitizeHTMLServer(processed);
   };

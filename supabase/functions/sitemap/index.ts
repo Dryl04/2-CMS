@@ -22,8 +22,10 @@ Deno.serve(async (req: Request) => {
 
     const { data: pages, error } = await supabase
       .from("seo_metadata")
-      .select("page_key, updated_at")
+      .select("slug, updated_at")
       .eq("status", "published")
+      .eq("is_public", true)
+      .eq("exclude_from_sitemap", false)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -45,7 +47,7 @@ Deno.serve(async (req: Request) => {
       for (const page of pages) {
         const lastmod = new Date(page.updated_at).toISOString().split("T")[0];
         xml += `  <url>\n`;
-        xml += `    <loc>${baseUrl}/${page.page_key}</loc>\n`;
+        xml += `    <loc>${baseUrl}/${page.slug}</loc>\n`;
         xml += `    <lastmod>${lastmod}</lastmod>\n`;
         xml += `    <changefreq>monthly</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
