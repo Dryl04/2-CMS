@@ -6,6 +6,14 @@ export type PageStatus =
   | "archived"
   | "error";
 
+export type SchemaType =
+  | "Article"
+  | "BlogPosting"
+  | "Product"
+  | "Service"
+  | "FAQPage"
+  | "WebPage";
+
 export interface SEOMetadata {
   id: string;
   page_key: string;
@@ -28,6 +36,8 @@ export interface SEOMetadata {
   parent_page_key: string | null;
   is_public: boolean;
   exclude_from_sitemap: boolean;
+  schema_type: SchemaType;
+  schema_options: Record<string, any> | null;
   scheduled_at: string | null;
   published_at: string | null;
   imported_at: string | null;
