@@ -1,19 +1,44 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Plus } from 'lucide-react';
+import { createClient } from '@/lib/supabase-client';
 import type { SEOMetadata } from '@/types/database';
 
 interface SEOFieldsProps {
   data: Partial<SEOMetadata>;
   onChange: (field: string, value: string | string[] | null) => void;
+  onAutoSlug?: (slug: string) => void;
 }
 
-export default function SEOFields({ data, onChange }: SEOFieldsProps) {
+interface PageOption {
+  page_key: string;
+  title: string;
+  slug: string;
+}
+
+export default function SEOFields({ data, onChange, onAutoSlug }: SEOFieldsProps) {
   const [keywordInput, setKeywordInput] = useState('');
+  const [availablePages, setAvailablePages] = useState<PageOption[]>([]);
+  const [showNewParentDialog, setShowNewParentDialog] = useState(false);
+  const [newParentTitle, setNewParentTitle] = useState('');
 
   const titleLength = data.title?.length || 0;
   const descLength = data.meta_description?.length || 0;
+
+  // Load available pages for parent selector
+  useEffect(() => {
+    loadAvailablePages();
+  }, []);
+
+  const loadAvailablePages = async () => {
+    const supabase = createClient();
+    const { data: pages } = await supabase
+      .from('seo_metadata')
+      .select('page_key, title, slug')
+      .order('title');
+    if (pages) setAvailablePages(pages);
+  };
 
   // Construct full URL path from slug (which can now contain slashes)
   const fullPath = useMemo(() => {
@@ -34,8 +59,45 @@ export default function SEOFields({ data, onChange }: SEOFieldsProps) {
     onChange('keywords', newKeywords);
   };
 
+  const handleNewParent = () => {
+    if (!newParentTitle.trim()) return;
+    // This will be handled by parent component
+    onChange('parent_page_key', `__NEW__:${newParentTitle}`);
+    setShowNewParentDialog(false);
+    setNewParentTitle('');
+  };
+
   return (
     <div className="space-y-5">
+      {/* Title - now at the top */}
+      <div>
+        <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+          <span>Titre SEO *</span>
+          <div className="flex items-center gap-2">
+            <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${titleLength > 60 ? 'bg-red-500' : titleLength > 50 ? 'bg-amber-500' : 'bg-green-500'}`}
+                style={{ width: `${Math.min(100, (titleLength / 60) * 100)}%` }}
+              />
+            </div>
+            <span className={`text-xs tabular-nums ${titleLength > 60 ? 'text-red-500' : titleLength > 50 ? 'text-amber-500' : 'text-gray-400'}`}>
+              {titleLength}/60
+            </span>
+          </div>
+        </label>
+        <input
+          type="text"
+          value={data.title || ''}
+          onChange={(e) => onChange('title', e.target.value)}
+          placeholder="Titre optimise pour le SEO"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
+        />
+        {titleLength > 60 && (
+          <p className="text-xs text-red-500 mt-1">Le titre depasse la limite recommandee de 60 caracteres pour le SEO</p>
+        )}
+        <p className="text-xs text-gray-400 mt-1">💡 Le slug de la page sera généré automatiquement à partir de ce titre</p>
+      </div>
+
       {/* Page key */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Cle de page *</label>
@@ -72,37 +134,82 @@ export default function SEOFields({ data, onChange }: SEOFieldsProps) {
           </p>
         )}
         <p className="text-xs text-gray-400 mt-1">
-          Vous pouvez definir l'URL complete comme vous le souhaitez. Ex: "blog/tech/article" ou "produits/categorie/item"
+          💡 Modifiable manuellement, mais sera rempli automatiquement depuis le titre
         </p>
       </div>
 
-      {/* Title */}
+      {/* Parent page selector */}
       <div>
-        <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
-          <span>Titre SEO *</span>
-          <div className="flex items-center gap-2">
-            <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${titleLength > 60 ? 'bg-red-500' : titleLength > 50 ? 'bg-amber-500' : 'bg-green-500'}`}
-                style={{ width: `${Math.min(100, (titleLength / 60) * 100)}%` }}
-              />
-            </div>
-            <span className={`text-xs tabular-nums ${titleLength > 60 ? 'text-red-500' : titleLength > 50 ? 'text-amber-500' : 'text-gray-400'}`}>
-              {titleLength}/60
-            </span>
-          </div>
-        </label>
-        <input
-          type="text"
-          value={data.title || ''}
-          onChange={(e) => onChange('title', e.target.value)}
-          placeholder="Titre optimise pour le SEO"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
-        />
-        {titleLength > 60 && (
-          <p className="text-xs text-red-500 mt-1">Le titre depasse la limite recommandee de 60 caracteres pour le SEO</p>
-        )}
+        <label className="block text-sm font-medium text-gray-700 mb-1">Page parente (catégorie)</label>
+        <div className="flex gap-2">
+          <select
+            value={data.parent_page_key || ''}
+            onChange={(e) => onChange('parent_page_key', e.target.value || null)}
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900 text-sm"
+          >
+            <option value="">Aucune (page racine)</option>
+            {availablePages.map((page) => (
+              <option key={page.page_key} value={page.page_key}>
+                {page.title} ({page.slug})
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowNewParentDialog(true)}
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium flex items-center gap-2"
+            title="Créer une nouvelle page parente"
+          >
+            <Plus className="w-4 h-4" />
+            Créer
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          Définissez une page parente pour créer une structure hiérarchique (ex: Blog → Article)
+        </p>
       </div>
+
+      {/* New parent dialog */}
+      {showNewParentDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewParentDialog(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Créer une nouvelle page parente</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre de la page parente</label>
+                <input
+                  type="text"
+                  value={newParentTitle}
+                  onChange={(e) => setNewParentTitle(e.target.value)}
+                  placeholder="Ex: Blog, Produits, Services..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewParentDialog(false);
+                    setNewParentTitle('');
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-medium"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNewParent}
+                  disabled={!newParentTitle.trim()}
+                  className="px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white rounded-xl font-medium"
+                >
+                  Créer et utiliser
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Meta description */}
       <div>

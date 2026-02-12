@@ -26,6 +26,7 @@ interface ImportRow {
   h2?: string;
   canonical_url?: string;
   status?: string;
+  parent_page_key?: string;
 }
 
 type ImportFormat = 'json' | 'csv';
@@ -45,6 +46,7 @@ export default function ImportManager() {
     const errs: ImportError[] = [];
     const seenKeys = new Set<string>();
     const seenSlugs = new Set<string>();
+    const allKeys = new Set(rows.map(r => r.page_key).filter(Boolean));
 
     rows.forEach((row, i) => {
       const rowNum = i + 1;
@@ -73,8 +75,8 @@ export default function ImportManager() {
       }
 
       // Slug format
-      if (row.slug && !/^[a-z0-9-]+$/.test(row.slug)) {
-        errs.push({ row: rowNum, field: 'slug', message: `Slug invalide "${row.slug}" (utiliser a-z, 0-9, -)`, blocking: false });
+      if (row.slug && !/^[a-z0-9-/]+$/.test(row.slug)) {
+        errs.push({ row: rowNum, field: 'slug', message: `Slug invalide "${row.slug}" (utiliser a-z, 0-9, -, /)`, blocking: false });
       }
 
       // Meta description length
@@ -90,6 +92,33 @@ export default function ImportManager() {
       // Status validation
       if (row.status && !['draft', 'pending', 'published', 'archived'].includes(row.status)) {
         errs.push({ row: rowNum, field: 'status', message: `Statut invalide "${row.status}"`, blocking: false });
+      }
+
+      // Parent page validation
+      if (row.parent_page_key) {
+        // Check if parent exists in import batch
+        if (!allKeys.has(row.parent_page_key)) {
+          errs.push({ row: rowNum, field: 'parent_page_key', message: `Page parente "${row.parent_page_key}" introuvable dans l'import`, blocking: false });
+        }
+
+        // Check for self-reference
+        if (row.parent_page_key === row.page_key) {
+          errs.push({ row: rowNum, field: 'parent_page_key', message: `Une page ne peut pas être sa propre parente`, blocking: true });
+        }
+
+        // Check for circular references
+        const visited = new Set<string>();
+        let currentKey = row.parent_page_key;
+        while (currentKey && !visited.has(currentKey)) {
+          visited.add(currentKey);
+          const parent = rows.find(r => r.page_key === currentKey);
+          if (!parent) break;
+          if (parent.parent_page_key === row.page_key) {
+            errs.push({ row: rowNum, field: 'parent_page_key', message: `Référence circulaire détectée`, blocking: true });
+            break;
+          }
+          currentKey = parent.parent_page_key || '';
+        }
       }
     });
 
@@ -214,6 +243,7 @@ export default function ImportManager() {
         content: row.content || null,
         canonical_url: row.canonical_url || null,
         status: (row.status as SEOMetadata['status']) || 'draft',
+        parent_page_key: row.parent_page_key || null,
         imported_at: new Date().toISOString(),
       };
 
@@ -240,7 +270,7 @@ export default function ImportManager() {
   const warningCount = errors.filter((e) => !e.blocking).length;
 
   const downloadTemplate = () => {
-    const template = 'page_key,slug,title,meta_description,keywords,h1,h2,content,status\nexample-page,example-page,Titre de la page,Description meta pour le SEO,"mot-clé1, mot-clé2",Titre H1,Sous-titre H2,<p>Contenu HTML</p>,draft';
+    const template = 'page_key,slug,title,meta_description,keywords,h1,h2,content,status,parent_page_key\nexample-page,example-page,Titre de la page,Description meta pour le SEO,"mot-clé1, mot-clé2",Titre H1,Sous-titre H2,<p>Contenu HTML</p>,draft,\nexample-child,example-child,Titre page enfant,Description page enfant,"mot-clé1",Titre enfant,Sous-titre,<p>Contenu</p>,draft,example-page';
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -365,6 +395,7 @@ export default function ImportManager() {
                   <th className="text-left py-2 px-2 text-gray-500">slug</th>
                   <th className="text-left py-2 px-2 text-gray-500">title</th>
                   <th className="text-left py-2 px-2 text-gray-500">meta_description</th>
+                  <th className="text-left py-2 px-2 text-gray-500">parent</th>
                   <th className="text-left py-2 px-2 text-gray-500">status</th>
                 </tr>
               </thead>
@@ -378,6 +409,7 @@ export default function ImportManager() {
                       <td className="py-2 px-2 font-mono text-xs">{row.slug}</td>
                       <td className="py-2 px-2 truncate max-w-[200px]">{row.title}</td>
                       <td className="py-2 px-2 truncate max-w-[200px]">{row.meta_description}</td>
+                      <td className="py-2 px-2 font-mono text-xs text-gray-500">{row.parent_page_key || '-'}</td>
                       <td className="py-2 px-2">{row.status || 'draft'}</td>
                     </tr>
                   );

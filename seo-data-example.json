@@ -1,67 +1,127 @@
 [
   {
     "page_key": "home",
+    "slug": "home",
     "title": "NetworkPro - Transformez vos rencontres en contrats",
-    "description": "L'application de gestion de cartes de visites qui transforme vos rencontres professionnelles en opportunités commerciales concrètes.",
-    "keywords": ["gestion cartes visite", "networking", "CRM mobile", "contacts professionnels", "application réseau"],
-    "og_title": "NetworkPro - Votre réseau, votre succès",
-    "og_description": "Ne perdez plus jamais une opportunité commerciale après un salon. Pilotez votre réseau avec une stratégie de conversion automatisée.",
-    "og_image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&h=630&fit=crop",
-    "canonical_url": "https://networkpro.com",
-    "language": "fr",
-    "status": "published"
+    "meta_description": "L'application de gestion de cartes de visites qui transforme vos rencontres professionnelles en opportunités commerciales concrètes.",
+    "keywords": [
+      "gestion cartes visite",
+      "networking",
+      "CRM mobile",
+      "contacts professionnels",
+      "application réseau"
+    ],
+    "h1": "NetworkPro - Votre réseau votre succès",
+    "h2": "Transformez chaque rencontre en opportunité",
+    "content": "<p>Ne perdez plus jamais une opportunité commerciale après un salon. Pilotez votre réseau avec une stratégie de conversion automatisée.</p>",
+    "status": "published",
+    "parent_page_key": null
   },
   {
     "page_key": "features",
+    "slug": "features",
     "title": "Fonctionnalités NetworkPro - CRM Mobile Complet",
-    "description": "Scanner de cartes, gestion d'événements, pipeline commercial, notifications intelligentes. Tout pour gérer votre réseau professionnel efficacement.",
-    "keywords": ["fonctionnalités CRM", "scanner cartes visite", "gestion événements", "pipeline commercial", "notifications"],
-    "og_title": "Des fonctionnalités pensées pour les professionnels",
-    "og_description": "Tableau de bord, gestion d'événements, tunnel de conversion et bien plus encore.",
-    "og_image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=630&fit=crop",
-    "language": "fr",
-    "status": "published"
+    "meta_description": "Scanner de cartes, gestion d'événements, pipeline commercial, notifications intelligentes. Tout pour gérer votre réseau professionnel efficacement.",
+    "keywords": [
+      "fonctionnalités CRM",
+      "scanner cartes visite",
+      "gestion événements",
+      "pipeline commercial",
+      "notifications"
+    ],
+    "h1": "Des fonctionnalités pensées pour les professionnels",
+    "h2": "Tableau de bord complet",
+    "content": "<p>Gestion d'événements, tunnel de conversion et bien plus encore.</p>",
+    "status": "published",
+    "parent_page_key": null
   },
   {
     "page_key": "pricing",
+    "slug": "pricing",
     "title": "Tarifs NetworkPro - Plans adaptés à votre croissance",
-    "description": "Découvrez nos offres flexibles pour digitaliser votre réseau professionnel. Essai gratuit sans engagement. À partir de 0€.",
-    "keywords": ["tarifs CRM", "prix gestion contacts", "abonnement networking", "essai gratuit CRM", "forfait professionnel"],
-    "og_title": "Tarifs NetworkPro - À partir de 0€",
-    "og_description": "Des plans adaptés à chaque professionnel. Commencez gratuitement dès aujourd'hui.",
-    "og_image": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1200&h=630&fit=crop",
-    "language": "fr",
-    "status": "published"
+    "meta_description": "Découvrez nos offres flexibles pour digitaliser votre réseau professionnel. Essai gratuit sans engagement. À partir de 0€.",
+    "keywords": [
+      "tarifs CRM",
+      "prix gestion contacts",
+      "abonnement networking",
+      "essai gratuit CRM",
+      "forfait professionnel"
+    ],
+    "h1": "Tarifs NetworkPro - À partir de 0€",
+    "h2": "Des plans adaptés à chaque professionnel",
+    "content": "<p>Commencez gratuitement dès aujourd'hui.</p>",
+    "status": "published",
+    "parent_page_key": null
   },
   {
     "page_key": "testimonials",
+    "slug": "testimonials",
     "title": "Témoignages clients - NetworkPro en action",
-    "description": "Consultants, commerciaux, fondateurs de startup. Découvrez comment NetworkPro a transformé leur gestion de réseau professionnel.",
-    "keywords": ["témoignages CRM", "avis NetworkPro", "retours clients", "success stories", "cas clients"],
-    "og_title": "Ils ont transformé leur réseau avec NetworkPro",
-    "og_description": "Marc a doublé ses relances, Sarah gagne 40 minutes par jour. Et vous ?",
-    "og_image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1200&h=630&fit=crop",
-    "language": "fr",
-    "status": "published"
+    "meta_description": "Consultants, commerciaux, fondateurs de startup. Découvrez comment NetworkPro a transformé leur gestion de réseau professionnel.",
+    "keywords": [
+      "témoignages CRM",
+      "avis NetworkPro",
+      "retours clients",
+      "success stories",
+      "cas clients"
+    ],
+    "h1": "Ils ont transformé leur réseau avec NetworkPro",
+    "h2": "Des résultats concrets",
+    "content": "<p>Marc a doublé ses relances, Sarah gagne 40 minutes par jour. Et vous ?</p>",
+    "status": "published",
+    "parent_page_key": null
   },
   {
     "page_key": "about",
+    "slug": "about",
     "title": "À propos de NetworkPro - Notre mission",
-    "description": "NetworkPro aide les professionnels à transformer leurs contacts en opportunités commerciales grâce à une technologie simple et puissante.",
-    "keywords": ["à propos NetworkPro", "mission", "équipe", "valeurs", "histoire"],
-    "og_title": "NetworkPro - Construire le futur du networking professionnel",
-    "og_description": "Une équipe passionnée au service de votre réussite professionnelle.",
-    "language": "fr",
-    "status": "draft"
+    "meta_description": "NetworkPro aide les professionnels à transformer leurs contacts en opportunités commerciales grâce à une technologie simple et puissante.",
+    "keywords": [
+      "à propos NetworkPro",
+      "mission",
+      "équipe",
+      "valeurs",
+      "histoire"
+    ],
+    "h1": "NetworkPro - Construire le futur du networking professionnel",
+    "h2": "Une équipe passionnée",
+    "content": "<p>Au service de votre réussite professionnelle.</p>",
+    "status": "draft",
+    "parent_page_key": null
   },
   {
     "page_key": "blog",
+    "slug": "blog",
     "title": "Blog NetworkPro - Conseils networking et croissance",
-    "description": "Conseils, stratégies et astuces pour optimiser votre networking professionnel et maximiser vos opportunités commerciales.",
-    "keywords": ["blog networking", "conseils CRM", "stratégie commerciale", "astuces réseau", "croissance business"],
-    "og_title": "Blog NetworkPro - Expertise networking",
-    "og_description": "Les meilleures pratiques pour transformer vos contacts en clients.",
-    "language": "fr",
-    "status": "draft"
+    "meta_description": "Conseils, stratégies et astuces pour optimiser votre networking professionnel et maximiser vos opportunités commerciales.",
+    "keywords": [
+      "blog networking",
+      "conseils CRM",
+      "stratégie commerciale",
+      "astuces réseau",
+      "croissance business"
+    ],
+    "h1": "Blog NetworkPro - Expertise networking",
+    "h2": "Les meilleures pratiques",
+    "content": "<p>Transformez vos contacts en clients.</p>",
+    "status": "draft",
+    "parent_page_key": null
+  },
+  {
+    "page_key": "blog-article-1",
+    "slug": "blog/comment-reussir-networking",
+    "title": "Comment réussir son networking en 2026",
+    "meta_description": "Découvrez les meilleures stratégies pour développer votre réseau professionnel et créer des opportunités commerciales durables.",
+    "keywords": [
+      "networking 2026",
+      "stratégies réseau",
+      "développement professionnel",
+      "opportunités commerciales"
+    ],
+    "h1": "Comment réussir son networking en 2026",
+    "h2": "Les stratégies gagnantes",
+    "content": "<p>Le networking est un art qui demande de la stratégie...</p>",
+    "status": "published",
+    "parent_page_key": "blog"
   }
 ]
