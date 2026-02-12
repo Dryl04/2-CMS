@@ -142,6 +142,19 @@ export interface ComponentBlock {
   updated_at: string;
 }
 
+// ============ Redirects ============
+export interface Redirect {
+  id: string;
+  source_path: string;
+  destination_path: string;
+  redirect_type: 301 | 302;
+  is_active: boolean;
+  hit_count: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============ Section Catalog ============
 export const SECTION_CATALOG: Record<
   SectionType,
