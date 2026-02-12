@@ -144,7 +144,14 @@ function SortableSectionItem({
   return (
     <div ref={setNodeRef} style={style} className="border border-gray-200 rounded-xl p-4 bg-white">
       <div className="flex items-center gap-3 mb-3">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+        <div 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing"
+          aria-label="Glisser pour réordonner la section"
+          role="button"
+          tabIndex={0}
+        >
           <GripVertical className="w-5 h-5 text-gray-400 flex-shrink-0" />
         </div>
         <div className="flex-1">

@@ -151,8 +151,12 @@ Deno.serve(async (req) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    // Log the full error internally (appears in Supabase function logs)
+    console.error('Scheduled publication error:', error);
+    
+    // Return generic error message to client (don't leak internal details)
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Internal server error. Check function logs for details.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
