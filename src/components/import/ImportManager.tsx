@@ -100,12 +100,12 @@ export default function ImportManager() {
         if (!allKeys.has(row.parent_page_key)) {
           errs.push({ row: rowNum, field: 'parent_page_key', message: `Page parente "${row.parent_page_key}" introuvable dans l'import`, blocking: false });
         }
-        
+
         // Check for self-reference
         if (row.parent_page_key === row.page_key) {
           errs.push({ row: rowNum, field: 'parent_page_key', message: `Une page ne peut pas être sa propre parente`, blocking: true });
         }
-        
+
         // Check for circular references
         const visited = new Set<string>();
         let currentKey = row.parent_page_key;

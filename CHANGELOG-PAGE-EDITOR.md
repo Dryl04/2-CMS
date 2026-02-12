@@ -11,6 +11,7 @@ Ce document détaille toutes les améliorations apportées au système de créat
 ## 1️⃣ Interface et Expérience Utilisateur (UX)
 
 ### ✅ Réorganisation de l'interface
+
 **Fichier modifié:** `src/components/editor/SEOFields.tsx`
 
 - **Le champ "Titre SEO" est maintenant en première position** (au lieu de page_key)
@@ -18,11 +19,14 @@ Ce document détaille toutes les améliorations apportées au système de créat
   - Améliore le workflow de création de page
 
 ### ✅ Génération automatique du slug
-**Fichiers modifiés:** 
+
+**Fichiers modifiés:**
+
 - `src/components/editor/PageEditor.tsx` (fonction `updateField`)
 - `src/components/editor/SEOFields.tsx`
 
 **Comportement implémenté :**
+
 - Le slug est **généré automatiquement depuis le titre** (pas depuis page_key)
 - Utilise la fonction `slugify()` existante qui :
   - Convertit en minuscules
@@ -31,12 +35,14 @@ Ce document détaille toutes les améliorations apportées au système de créat
   - Supprime les tirets en début/fin
 
 **Exemple :**
+
 ```
 Titre: "Comment Réussir son Networking en 2026 ?"
 Slug généré: "comment-reussir-son-networking-en-2026"
 ```
 
 ### ✅ Flexibilité du slug
+
 - Le slug **reste modifiable manuellement** après génération
 - Smart update : ne régénère pas si l'utilisateur a modifié manuellement
 - Indication visuelle : message explicatif sous le champ
@@ -46,16 +52,20 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ## 2️⃣ Gestion des Catégories et de l'Arborescence
 
 ### ✅ Système de page parente
+
 **Fichier modifié:** `src/components/editor/SEOFields.tsx`
 
 **Fonctionnalités implémentées :**
+
 1. **Sélecteur de page parente** : Liste déroulante des pages existantes
 2. **Option "Aucune"** : Pour les pages racines (sans parent)
 3. **Affichage enrichi** : Titre et slug de chaque page pour faciliter la sélection
 4. **Chargement automatique** : Liste des pages disponibles chargée au montage du composant
 
 ### ✅ Création de page parente à la volée
+
 **Fonctionnalité majeure :**
+
 - Bouton "+ Créer" à côté du sélecteur
 - Modal de création rapide d'une page parente
 - La nouvelle page est automatiquement :
@@ -64,6 +74,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
   - Sélectionnée comme parent de la page courante
 
 **Workflow :**
+
 ```
 1. Utilisateur clique sur "+ Créer"
 2. Saisit le titre de la page parente (ex: "Blog")
@@ -73,6 +84,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ```
 
 ### ✅ Sauvegarde de la hiérarchie
+
 **Fichier modifié:** `src/components/editor/PageEditor.tsx` (fonction `handleSave`)
 
 - Le champ `parent_page_key` est maintenant sauvegardé dans la base de données
@@ -84,9 +96,11 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ## 3️⃣ Cohérence avec le système d'import/export
 
 ### ✅ Support de `parent_page_key` dans l'import
+
 **Fichier modifié:** `src/components/import/ImportManager.tsx`
 
 **Améliorations :**
+
 1. **Ajout du champ `parent_page_key`** dans :
    - L'interface TypeScript `ImportRow`
    - La fonction de validation
@@ -106,6 +120,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ### ✅ Mise à jour des fichiers d'exemples
 
 **Fichiers mis à jour :**
+
 1. `seo-data-example.csv`
    - Ajout des colonnes : `slug`, `h1`, `h2`, `content`, `parent_page_key`
    - Remplacement de `description` par `meta_description`
@@ -128,18 +143,18 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 
 ## 📋 Tableau récapitulatif des champs
 
-| Champ | Obligatoire | Auto-généré | Modifiable | Description |
-|-------|-------------|-------------|------------|-------------|
-| `title` | ✅ Oui | Non | Oui | Titre SEO (60 car. recommandé) |
-| `slug` | ✅ Oui | **✅ Depuis titre** | ✅ Oui | URL de la page (avec tirets) |
-| `page_key` | ✅ Oui | Depuis titre si vide | Oui | Identifiant unique technique |
-| `meta_description` | ✅ Oui | Non | Oui | Meta description (160 car.) |
-| `parent_page_key` | ❌ Non | Non | Oui | Clé de la page parente |
-| `h1` | ❌ Non | Non | Oui | Titre principal H1 |
-| `h2` | ❌ Non | Non | Oui | Sous-titre H2 |
-| `content` | ❌ Non | Non | Oui | Contenu HTML |
-| `keywords` | ❌ Non | Non | Oui | Liste de mots-clés |
-| `status` | ❌ Non | `draft` | Oui | Statut de publication |
+| Champ              | Obligatoire | Auto-généré          | Modifiable | Description                    |
+| ------------------ | ----------- | -------------------- | ---------- | ------------------------------ |
+| `title`            | ✅ Oui      | Non                  | Oui        | Titre SEO (60 car. recommandé) |
+| `slug`             | ✅ Oui      | **✅ Depuis titre**  | ✅ Oui     | URL de la page (avec tirets)   |
+| `page_key`         | ✅ Oui      | Depuis titre si vide | Oui        | Identifiant unique technique   |
+| `meta_description` | ✅ Oui      | Non                  | Oui        | Meta description (160 car.)    |
+| `parent_page_key`  | ❌ Non      | Non                  | Oui        | Clé de la page parente         |
+| `h1`               | ❌ Non      | Non                  | Oui        | Titre principal H1             |
+| `h2`               | ❌ Non      | Non                  | Oui        | Sous-titre H2                  |
+| `content`          | ❌ Non      | Non                  | Oui        | Contenu HTML                   |
+| `keywords`         | ❌ Non      | Non                  | Oui        | Liste de mots-clés             |
+| `status`           | ❌ Non      | `draft`              | Oui        | Statut de publication          |
 
 ---
 
@@ -148,6 +163,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ### Création d'une nouvelle page
 
 **Avant :**
+
 ```
 1. Saisir page_key
 2. Saisir slug manuellement
@@ -156,6 +172,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ```
 
 **Après :**
+
 ```
 1. Saisir titre → slug généré automatiquement ✨
 2. [Optionnel] Modifier slug si besoin
@@ -166,6 +183,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ### Création d'une hiérarchie
 
 **Exemple : Blog avec articles**
+
 ```
 1. Créer la page "Blog" (pas de parent)
 2. Créer un article :
@@ -180,6 +198,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ## 🧪 Tests recommandés
 
 ### Test 1 : Génération automatique du slug
+
 - [ ] Créer une page avec titre "Mon Super Article !"
 - [ ] Vérifier que le slug est "mon-super-article"
 - [ ] Modifier le slug manuellement
@@ -187,6 +206,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 - [ ] Vérifier que le slug modifié n'est pas écrasé
 
 ### Test 2 : Création de page parente
+
 - [ ] Créer une nouvelle page
 - [ ] Cliquer sur "+ Créer" à côté du sélecteur de parent
 - [ ] Créer une page "Blog"
@@ -194,6 +214,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 - [ ] Sauvegarder et vérifier dans la base
 
 ### Test 3 : Import avec hiérarchie
+
 - [ ] Utiliser le template CSV généré
 - [ ] Ajouter une page parente et une page enfant
 - [ ] Importer via l'interface
@@ -201,6 +222,7 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 - [ ] Vérifier l'import en base de données
 
 ### Test 4 : Validation des cycles
+
 - [ ] Tenter d'importer A→B→A
 - [ ] Vérifier que l'erreur est détectée
 - [ ] Tenter d'importer A→A (auto-référence)
@@ -211,27 +233,33 @@ Slug généré: "comment-reussir-son-networking-en-2026"
 ## 📝 Notes techniques
 
 ### Fonction slugify()
+
 Localisée dans : `src/lib/utils.ts`
+
 ```typescript
 export function slugify(text: string): string {
   return text
     .toString()
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 }
 ```
 
 ### Détection des cycles
+
 Algorithme de détection dans : `src/components/import/ImportManager.tsx`
+
 - Utilise un Set pour tracker les pages visitées
 - Remonte la chaîne des parents
 - Détecte si la page courante apparaît dans ses ancêtres
 
 ### Gestion de la création de page parente
+
 Pattern utilisé : `__NEW__:titre` stocké temporairement
+
 - Détecté dans `handleSave()`
 - Page parente créée automatiquement
 - Clé générée à partir du titre
@@ -252,16 +280,19 @@ Pattern utilisé : `__NEW__:titre` stocké temporairement
 ## 📚 Fichiers modifiés
 
 ### Composants React
+
 - ✅ `src/components/editor/SEOFields.tsx` - Interface de saisie des champs SEO
 - ✅ `src/components/editor/PageEditor.tsx` - Éditeur principal de page
 - ✅ `src/components/import/ImportManager.tsx` - Gestionnaire d'import
 
 ### Documentation et exemples
+
 - ✅ `seo-data-example.csv` - Exemple CSV mis à jour
 - ✅ `seo-data-example.json` - Exemple JSON mis à jour
 - ✅ `seo-import-examples.md` - Documentation d'import complète
 
 ### Nouveaux fichiers
+
 - ✅ `CHANGELOG-PAGE-EDITOR.md` - Ce document
 
 ---

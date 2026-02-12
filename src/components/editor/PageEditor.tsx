@@ -103,7 +103,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
   const updateField = (field: string, value: string | string[] | boolean | null) => {
     setPageData((prev) => {
       const updated = { ...prev, [field]: value };
-      
+
       // Auto-generate slug from title if slug is empty or hasn't been manually modified
       if (field === 'title' && typeof value === 'string' && value.trim()) {
         // Only auto-generate if slug is empty or matches previous auto-generated slug
@@ -112,18 +112,18 @@ export default function PageEditor({ pageId }: PageEditorProps) {
           updated.slug = slugify(value);
         }
       }
-      
+
       // Auto-generate page_key from title if page_key is empty
       if (field === 'title' && !prev.page_key && typeof value === 'string') {
         updated.page_key = slugify(value);
       }
-      
+
       // Handle new parent page creation
       if (field === 'parent_page_key' && typeof value === 'string' && value.startsWith('__NEW__:')) {
         // Mark for creation - will be handled in handleSave
         updated.parent_page_key = value;
       }
-      
+
       return updated;
     });
   };
@@ -201,7 +201,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       const parentTitle = finalParentKey.replace('__NEW__:', '');
       const parentKey = slugify(parentTitle);
       const parentSlug = slugify(parentTitle);
-      
+
       // Create parent page
       const { error: parentError } = await supabase.from('seo_metadata').insert({
         page_key: parentKey,
@@ -216,14 +216,14 @@ export default function PageEditor({ pageId }: PageEditorProps) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
-      
+
       if (parentError) {
         console.error('❌ Erreur création page parente:', parentError);
         toast.error('Erreur création de la page parente: ' + parentError.message);
         setIsSaving(false);
         return;
       }
-      
+
       finalParentKey = parentKey;
       toast.success(`Page parente "${parentTitle}" créée`);
     }
@@ -512,8 +512,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     type="button"
                     onClick={() => updateField('is_public', true)}
                     className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageData.is_public
-                        ? 'bg-green-50 text-green-700 border-2 border-green-300'
-                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                      ? 'bg-green-50 text-green-700 border-2 border-green-300'
+                      : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                       }`}
                   >
                     <Globe className="w-4 h-4" />
@@ -523,8 +523,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
                     type="button"
                     onClick={() => updateField('is_public', false)}
                     className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!pageData.is_public
-                        ? 'bg-amber-50 text-amber-700 border-2 border-amber-300'
-                        : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                      ? 'bg-amber-50 text-amber-700 border-2 border-amber-300'
+                      : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                       }`}
                   >
                     <Lock className="w-4 h-4" />
@@ -610,7 +610,7 @@ export default function PageEditor({ pageId }: PageEditorProps) {
         onApplyContent={(html) => {
           if (selectedTemplate && sectionContents.length > 0) {
             // Apply to active section if exists, otherwise to first section
-            const targetSection = activeSectionId 
+            const targetSection = activeSectionId
               ? selectedTemplate.sections.find((s) => s.id === activeSectionId)
               : selectedTemplate.sections[0];
             if (targetSection) {
