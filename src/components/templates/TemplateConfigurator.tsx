@@ -3,6 +3,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Trash2, GripVertical, ChevronUp, ChevronDown, Download, Eye, Code, Palette } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import SectionCatalog from './SectionCatalog';
@@ -73,6 +90,234 @@ const SECTION_DEFAULTS: Record<SectionType, string> = {
   contact: '<div class="max-w-lg mx-auto">\n  <h2 class="text-2xl font-bold mb-6 text-center">Contactez-nous</h2>\n  <form class="space-y-4">\n    <input type="text" placeholder="Nom" class="w-full px-4 py-3 border border-gray-300 rounded-xl" />\n    <input type="email" placeholder="Email" class="w-full px-4 py-3 border border-gray-300 rounded-xl" />\n    <textarea placeholder="Message" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none"></textarea>\n    <button type="submit" class="w-full py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800">Envoyer</button>\n  </form>\n</div>',
 };
 
+// Sortable Section Item Component
+interface SortableSectionItemProps {
+  section: TemplateSection;
+  index: number;
+  totalSections: number;
+  sectionPreviews: Record<string, string>;
+  getSectionStyle: (id: string) => SectionStyle;
+  editingCode: string | null;
+  editingStyle: string | null;
+  showPreview: boolean;
+  onUpdateSection: (id: string, updates: Partial<TemplateSection>) => void;
+  onUpdatePreview: (id: string, html: string) => void;
+  onUpdateStyle: (id: string, updates: Partial<SectionStyle>) => void;
+  onSetEditingCode: (id: string | null) => void;
+  onSetEditingStyle: (id: string | null) => void;
+  onMoveSection: (index: number, direction: 'up' | 'down') => void;
+  onRemoveSection: (id: string) => void;
+}
+
+function SortableSectionItem({
+  section,
+  index,
+  totalSections,
+  sectionPreviews,
+  getSectionStyle,
+  editingCode,
+  editingStyle,
+  showPreview,
+  onUpdateSection,
+  onUpdatePreview,
+  onUpdateStyle,
+  onSetEditingCode,
+  onSetEditingStyle,
+  onMoveSection,
+  onRemoveSection,
+}: SortableSectionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border border-gray-200 rounded-xl p-4 bg-white">
+      <div className="flex items-center gap-3 mb-3">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        </div>
+        <div className="flex-1">
+          <input
+            type="text"
+            value={section.label}
+            onChange={(e) => onUpdateSection(section.id, { label: e.target.value })}
+            className="font-medium text-gray-900 bg-transparent border-none p-0 focus:outline-none w-full"
+          />
+          <span className="text-xs text-gray-400">{section.type}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onSetEditingCode(editingCode === section.id ? null : section.id)}
+            className={`p-1 rounded transition-colors ${editingCode === section.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`}
+            title="Modifier le code HTML"
+          >
+            <Code className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onSetEditingStyle(editingStyle === section.id ? null : section.id)}
+            className={`p-1 rounded transition-colors ${editingStyle === section.id ? 'bg-purple-50 text-purple-600' : 'hover:bg-gray-100 text-gray-500'}`}
+            title="Personnaliser le style"
+          >
+            <Palette className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => onMoveSection(index, 'up')} disabled={index === 0} className="p-1 hover:bg-gray-100 rounded disabled:opacity-20">
+            <ChevronUp className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => onMoveSection(index, 'down')} disabled={index === totalSections - 1} className="p-1 hover:bg-gray-100 rounded disabled:opacity-20">
+            <ChevronDown className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => onRemoveSection(section.id)} className="p-1 hover:bg-red-50 rounded text-red-500">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Code editor for section */}
+      {editingCode === section.id && (
+        <div className="mb-3">
+          <label className="text-xs text-gray-500 mb-1 block">Code HTML par défaut (Tailwind CSS supporté)</label>
+          <textarea
+            value={sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || ''}
+            onChange={(e) => onUpdatePreview(section.id, e.target.value)}
+            className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
+            spellCheck={false}
+          />
+        </div>
+      )}
+
+      {/* Style customization panel */}
+      {editingStyle === section.id && (
+        <div className="mb-3 bg-gray-50 rounded-lg p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Espacement (marge haute)</label>
+              <select
+                value={getSectionStyle(section.id).spacing}
+                onChange={(e) => onUpdateStyle(section.id, { spacing: e.target.value })}
+                className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                {SPACING_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Police</label>
+              <select
+                value={getSectionStyle(section.id).fontFamily}
+                onChange={(e) => onUpdateStyle(section.id, { fontFamily: e.target.value })}
+                className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                {FONT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Couleur de fond</label>
+              <input
+                type="color"
+                value={getSectionStyle(section.id).backgroundColor || '#ffffff'}
+                onChange={(e) => onUpdateStyle(section.id, { backgroundColor: e.target.value === '#ffffff' ? '' : e.target.value })}
+                className="w-full h-8 rounded-lg cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Couleur du texte</label>
+              <input
+                type="color"
+                value={getSectionStyle(section.id).textColor || '#000000'}
+                onChange={(e) => onUpdateStyle(section.id, { textColor: e.target.value === '#000000' ? '' : e.target.value })}
+                className="w-full h-8 rounded-lg cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Padding vertical</label>
+              <select
+                value={getSectionStyle(section.id).paddingY}
+                onChange={(e) => onUpdateStyle(section.id, { paddingY: e.target.value })}
+                className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                {PADDING_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Padding horizontal</label>
+              <select
+                value={getSectionStyle(section.id).paddingX}
+                onChange={(e) => onUpdateStyle(section.id, { paddingX: e.target.value })}
+                className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                {PADDING_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section preview in iframe */}
+      {showPreview && (
+        <div className="mt-3 border border-gray-100 rounded-lg overflow-hidden bg-white">
+          <TemplatePreviewIframe
+            html={sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || `<p class="text-gray-400 text-center">Aperçu: ${section.label}</p>`}
+            style={getSectionStyle(section.id)}
+          />
+        </div>
+      )}
+
+      {/* Section constraints */}
+      <div className="grid grid-cols-3 gap-3 text-sm mt-3">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={section.required}
+            onChange={(e) => onUpdateSection(section.id, { required: e.target.checked })}
+            className="rounded"
+          />
+          <span className="text-gray-600">Obligatoire</span>
+        </label>
+        <div>
+          <label className="text-xs text-gray-500">Mots min</label>
+          <input
+            type="number"
+            value={section.min_words}
+            onChange={(e) => onUpdateSection(section.id, { min_words: parseInt(e.target.value) || 0 })}
+            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+            min={0}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500">Mots max</label>
+          <input
+            type="number"
+            value={section.max_words}
+            onChange={(e) => onUpdateSection(section.id, { max_words: parseInt(e.target.value) || 0 })}
+            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
+            min={0}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TemplateConfigurator({ template }: TemplateConfiguratorProps) {
   const router = useRouter();
   const [name, setName] = useState(template?.name || '');
@@ -86,6 +331,28 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
   const [editingStyle, setEditingStyle] = useState<string | null>(null);
   const fullPreviewIframeRef = useRef<HTMLIFrameElement>(null);
   const [fullPreviewHeight, setFullPreviewHeight] = useState(400);
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setSections((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        const reordered = arrayMove(items, oldIndex, newIndex);
+        return reordered.map((s, i) => ({ ...s, order: i }));
+      });
+    }
+  };
 
   const getSectionStyle = (id: string): SectionStyle => {
     return sectionStyles[id] || DEFAULT_STYLE;
@@ -275,180 +542,39 @@ export default function TemplateConfigurator({ template }: TemplateConfiguratorP
           {sections.length === 0 ? (
             <p className="text-gray-500 text-sm py-4 text-center">Ajoutez des sections depuis le catalogue →</p>
           ) : (
-            <div className="space-y-3">
-              {sections.map((section, index) => (
-                <div key={section.id} className="border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={section.label}
-                        onChange={(e) => updateSection(section.id, { label: e.target.value })}
-                        className="font-medium text-gray-900 bg-transparent border-none p-0 focus:outline-none w-full"
-                      />
-                      <span className="text-xs text-gray-400">{section.type}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingCode(editingCode === section.id ? null : section.id)}
-                        className={`p-1 rounded transition-colors ${editingCode === section.id ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100 text-gray-500'}`}
-                        title="Modifier le code HTML"
-                      >
-                        <Code className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingStyle(editingStyle === section.id ? null : section.id)}
-                        className={`p-1 rounded transition-colors ${editingStyle === section.id ? 'bg-purple-50 text-purple-600' : 'hover:bg-gray-100 text-gray-500'}`}
-                        title="Personnaliser le style"
-                      >
-                        <Palette className="w-4 h-4" />
-                      </button>
-                      <button type="button" onClick={() => moveSection(index, 'up')} disabled={index === 0} className="p-1 hover:bg-gray-100 rounded disabled:opacity-20">
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button type="button" onClick={() => moveSection(index, 'down')} disabled={index === sections.length - 1} className="p-1 hover:bg-gray-100 rounded disabled:opacity-20">
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                      <button type="button" onClick={() => removeSection(section.id)} className="p-1 hover:bg-red-50 rounded text-red-500">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Code editor for section */}
-                  {editingCode === section.id && (
-                    <div className="mb-3">
-                      <label className="text-xs text-gray-500 mb-1 block">Code HTML par défaut (Tailwind CSS supporté)</label>
-                      <textarea
-                        value={sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || ''}
-                        onChange={(e) => updateSectionPreview(section.id, e.target.value)}
-                        className="w-full h-40 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:border-gray-900 resize-y bg-gray-900 text-green-400"
-                        spellCheck={false}
-                      />
-                    </div>
-                  )}
-
-                  {/* Style customization panel */}
-                  {editingStyle === section.id && (
-                    <div className="mb-3 bg-gray-50 rounded-lg p-3 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Espacement (marge haute)</label>
-                          <select
-                            value={getSectionStyle(section.id).spacing}
-                            onChange={(e) => updateSectionStyle(section.id, { spacing: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                          >
-                            {SPACING_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Police</label>
-                          <select
-                            value={getSectionStyle(section.id).fontFamily}
-                            onChange={(e) => updateSectionStyle(section.id, { fontFamily: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                          >
-                            {FONT_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Couleur de fond</label>
-                          <input
-                            type="color"
-                            value={getSectionStyle(section.id).backgroundColor || '#ffffff'}
-                            onChange={(e) => updateSectionStyle(section.id, { backgroundColor: e.target.value === '#ffffff' ? '' : e.target.value })}
-                            className="w-full h-8 rounded-lg cursor-pointer"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Couleur du texte</label>
-                          <input
-                            type="color"
-                            value={getSectionStyle(section.id).textColor || '#000000'}
-                            onChange={(e) => updateSectionStyle(section.id, { textColor: e.target.value === '#000000' ? '' : e.target.value })}
-                            className="w-full h-8 rounded-lg cursor-pointer"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Padding vertical</label>
-                          <select
-                            value={getSectionStyle(section.id).paddingY}
-                            onChange={(e) => updateSectionStyle(section.id, { paddingY: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                          >
-                            {PADDING_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Padding horizontal</label>
-                          <select
-                            value={getSectionStyle(section.id).paddingX}
-                            onChange={(e) => updateSectionStyle(section.id, { paddingX: e.target.value })}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                          >
-                            {PADDING_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Section preview in iframe */}
-                  {showPreview && (
-                    <div className="mt-3 border border-gray-100 rounded-lg overflow-hidden bg-white">
-                      <TemplatePreviewIframe
-                        html={sectionPreviews[section.id] || SECTION_DEFAULTS[section.type] || `<p class="text-gray-400 text-center">Aperçu: ${section.label}</p>`}
-                        style={getSectionStyle(section.id)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={section.required}
-                        onChange={(e) => updateSection(section.id, { required: e.target.checked })}
-                        className="rounded"
-                      />
-                      Obligatoire
-                    </label>
-                    <div>
-                      <label className="text-xs text-gray-500">Mots min</label>
-                      <input
-                        type="number"
-                        value={section.min_words}
-                        onChange={(e) => updateSection(section.id, { min_words: parseInt(e.target.value) || 0 })}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                        min={0}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500">Mots max</label>
-                      <input
-                        type="number"
-                        value={section.max_words}
-                        onChange={(e) => updateSection(section.id, { max_words: parseInt(e.target.value) || 0 })}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm"
-                        min={0}
-                      />
-                    </div>
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sections.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {sections.map((section, index) => (
+                    <SortableSectionItem
+                      key={section.id}
+                      section={section}
+                      index={index}
+                      totalSections={sections.length}
+                      sectionPreviews={sectionPreviews}
+                      getSectionStyle={getSectionStyle}
+                      editingCode={editingCode}
+                      editingStyle={editingStyle}
+                      showPreview={showPreview}
+                      onUpdateSection={updateSection}
+                      onUpdatePreview={updateSectionPreview}
+                      onUpdateStyle={updateSectionStyle}
+                      onSetEditingCode={setEditingCode}
+                      onSetEditingStyle={setEditingStyle}
+                      onMoveSection={moveSection}
+                      onRemoveSection={removeSection}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
 
