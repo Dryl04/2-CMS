@@ -108,3 +108,15 @@ COMMENT ON COLUMN redirects.source_path IS 'Ancien chemin (slug) à rediriger';
 COMMENT ON COLUMN redirects.destination_path IS 'Nouveau chemin (slug) de destination';
 COMMENT ON COLUMN redirects.redirect_type IS 'Type de redirection: 301 (permanent) ou 302 (temporaire)';
 COMMENT ON COLUMN redirects.hit_count IS 'Nombre de fois que la redirection a été utilisée';
+
+-- Function to atomically increment hit count (race-condition safe)
+CREATE OR REPLACE FUNCTION increment_redirect_hit_count(redirect_source_path text)
+RETURNS void
+LANGUAGE sql
+AS $$
+  UPDATE redirects
+  SET hit_count = hit_count + 1
+  WHERE source_path = redirect_source_path AND is_active = true;
+$$;
+
+GRANT EXECUTE ON FUNCTION increment_redirect_hit_count(text) TO anon, authenticated;

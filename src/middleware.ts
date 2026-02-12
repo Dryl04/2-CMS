@@ -54,11 +54,11 @@ export async function middleware(request: NextRequest) {
         .single();
 
       if (redirect) {
-        // Increment hit counter (fire and forget - don't await)
-        void supabase
-          .from('redirects')
-          .update({ hit_count: (redirect.hit_count || 0) + 1 })
-          .eq('source_path', path);
+        // Increment hit counter using atomic SQL increment (race-condition safe)
+        // Don't await - fire and forget
+        void supabase.rpc('increment_redirect_hit_count', {
+          redirect_source_path: path,
+        });
 
         // Perform redirect
         const destination = new URL(`/${redirect.destination_path}`, request.url);

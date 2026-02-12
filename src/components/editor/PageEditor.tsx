@@ -216,10 +216,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       }
 
       if (wordConstraintViolations.length > 0 && (newStatus === 'published' || newStatus === 'pending')) {
-        toast.error(
-          `Contraintes de mots non respectées:\n${wordConstraintViolations.join('\n')}`,
-          { duration: 5000 }
-        );
+        const message = `Contraintes de mots non respectées: ${wordConstraintViolations.join(', ')}`;
+        toast.error(message, { duration: 5000 });
         return;
       }
     }

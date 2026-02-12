@@ -238,7 +238,9 @@ function generateBreadcrumbSchema(
 
 /**
  * Extract FAQ items from page content
- * Looks for common FAQ HTML patterns
+ * NOTE: This function only works client-side due to DOMParser dependency.
+ * For server-side FAQ extraction, pass faqItems directly in schema options
+ * or use a server-compatible HTML parser like node-html-parser.
  */
 export function extractFAQFromContent(html: string): Array<{ question: string; answer: string }> {
   const faqItems: Array<{ question: string; answer: string }> = [];
@@ -246,7 +248,10 @@ export function extractFAQFromContent(html: string): Array<{ question: string; a
   // Simple regex-based extraction for common patterns
   // This is a basic implementation - can be enhanced
   const parser = typeof window !== 'undefined' ? new DOMParser() : null;
-  if (!parser) return faqItems;
+  if (!parser) {
+    console.warn('extractFAQFromContent: DOMParser not available (server-side execution)');
+    return faqItems;
+  }
 
   try {
     const doc = parser.parseFromString(html, 'text/html');
