@@ -33,4 +33,4 @@ COMMENT ON COLUMN public.media_files.file_path IS 'Chemin complet dans le storag
 COMMENT ON COLUMN public.media_files.file_type IS 'Type MIME du fichier';
 COMMENT ON COLUMN public.media_files.file_size IS 'Taille du fichier en octets';
 COMMENT ON COLUMN public.media_files.alt_text IS 'Texte alternatif pour accessibilité';
-COMMENT ON COLUMN public.media_files.uploaded_by IS 'UUID de l\'utilisateur qui a uploadé le fichier';
+COMMENT ON COLUMN public.media_files.uploaded_by IS 'UUID de l''utilisateur qui a uploadé le fichier';
