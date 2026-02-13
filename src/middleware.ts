@@ -35,9 +35,46 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/admin', request.url));
   }
 
+  // Handle redirects for public pages (not admin or api routes)
+  if (!request.nextUrl.pathname.startsWith('/admin') && 
+      !request.nextUrl.pathname.startsWith('/api') &&
+      !request.nextUrl.pathname.startsWith('/_next') &&
+      request.nextUrl.pathname !== '/login') {
+    
+    // Extract the path without leading slash
+    const path = request.nextUrl.pathname.slice(1);
+    
+    if (path) {
+      // Check if there's a redirect for this path
+      const { data: redirect } = await supabase
+        .from('redirects')
+        .select('destination_path, redirect_type, hit_count')
+        .eq('source_path', path)
+        .eq('is_active', true)
+        .single();
+
+      if (redirect) {
+        // Increment hit counter using atomic SQL increment (race-condition safe)
+        // Don't await - fire and forget
+        void supabase.rpc('increment_redirect_hit_count', {
+          redirect_source_path: path,
+        });
+
+        // Perform redirect
+        const destination = new URL(`/${redirect.destination_path}`, request.url);
+        return NextResponse.redirect(destination, redirect.redirect_type);
+      }
+    }
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login'],
+  matcher: [
+    '/admin/:path*', 
+    '/login',
+    // Match all paths except _next/static, _next/image, favicon.ico
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 };

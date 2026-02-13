@@ -251,6 +251,28 @@ export default function SEOFields({ data, onChange, onAutoSlug }: SEOFieldsProps
         />
       </div>
 
+      {/* Schema.org Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Type de contenu (Schema.org)
+        </label>
+        <select
+          value={data.schema_type || 'WebPage'}
+          onChange={(e) => onChange('schema_type', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900 bg-white"
+        >
+          <option value="WebPage">Page Web (défaut)</option>
+          <option value="Article">Article</option>
+          <option value="BlogPosting">Article de blog</option>
+          <option value="Product">Produit</option>
+          <option value="Service">Service</option>
+          <option value="FAQPage">Page FAQ</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          Type de structured data pour améliorer l&apos;affichage dans les résultats de recherche
+        </p>
+      </div>
+
       {/* Keywords */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Mots-cles</label>
