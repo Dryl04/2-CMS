@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.media_files (
   file_type text NOT NULL,
   file_size bigint,
   alt_text text,
-  uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  uploaded_by uuid DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz DEFAULT now() NOT NULL
 );
 
