@@ -262,14 +262,14 @@ CREATE POLICY "Editor+ peut créer composants"
 CREATE POLICY "Propriétaire ou Admin peut modifier composants"
   ON component_blocks FOR UPDATE
   TO authenticated
-  USING (auth.uid() = created_by OR is_admin())
-  WITH CHECK (auth.uid() = created_by OR is_admin());
+  USING (auth.uid()::text = created_by OR is_admin())
+  WITH CHECK (auth.uid()::text = created_by OR is_admin());
 
 -- Propriétaire ou Admin peut supprimer
 CREATE POLICY "Propriétaire ou Admin peut supprimer composants"
   ON component_blocks FOR DELETE
   TO authenticated
-  USING (auth.uid() = created_by OR is_admin());
+  USING (auth.uid()::text = created_by OR is_admin());
 
 -- ============================================
 -- 8. USER_PROFILES - Profils utilisateurs
