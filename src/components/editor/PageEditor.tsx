@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { slugify } from '@/lib/utils';
+import { countWords } from '@/lib/internal-links';
 import SEOFields from './SEOFields';
 import SectionEditor from './SectionEditor';
 import PagePreview from './PagePreview';
@@ -45,6 +46,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
     status: 'draft',
     is_public: true,
     exclude_from_sitemap: false,
+    schema_type: 'WebPage',
+    schema_options: null,
   });
 
   // Template section contents
@@ -190,6 +193,33 @@ export default function PageEditor({ pageId }: PageEditorProps) {
         toast.error(`Sections obligatoires manquantes: ${requiredMissing.map((s) => s.label).join(', ')}`);
         return;
       }
+
+      // Validate min/max word constraints
+      const wordConstraintViolations: string[] = [];
+      for (const section of selectedTemplate.sections) {
+        const content = sectionContents.find((sc) => sc.section_id === section.id);
+        if (content?.content?.trim()) {
+          const wordCount = countWords(content.content);
+          
+          if (section.min_words > 0 && wordCount < section.min_words) {
+            wordConstraintViolations.push(
+              `"${section.label}": ${wordCount} mots (min: ${section.min_words})`
+            );
+          }
+          
+          if (section.max_words > 0 && wordCount > section.max_words) {
+            wordConstraintViolations.push(
+              `"${section.label}": ${wordCount} mots (max: ${section.max_words})`
+            );
+          }
+        }
+      }
+
+      if (wordConstraintViolations.length > 0 && (newStatus === 'published' || newStatus === 'pending')) {
+        const message = `Contraintes de mots non respectées: ${wordConstraintViolations.join(', ')}`;
+        toast.error(message, { duration: 5000 });
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -244,6 +274,8 @@ export default function PageEditor({ pageId }: PageEditorProps) {
       parent_page_key: finalParentKey,
       is_public: pageData.is_public === false ? false : true,
       exclude_from_sitemap: Boolean(pageData.exclude_from_sitemap),
+      schema_type: pageData.schema_type || 'WebPage',
+      schema_options: pageData.schema_options || null,
       updated_at: new Date().toISOString(),
     };
 

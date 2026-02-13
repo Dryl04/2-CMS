@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { sanitizeHTMLServer } from '@/lib/sanitize';
 import { applyInternalLinks } from '@/lib/internal-links';
+import { generateSchema } from '@/lib/schema-org';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import type { SectionContent, TemplateSection } from '@/types/database';
@@ -129,10 +130,32 @@ export default async function PublicPage({ params }: PageProps) {
   // Build page HTML
   const sectionContents = (page.sections_content as SectionContent[]) || [];
 
+  // Generate Schema.org JSON-LD
+  const schemaData = generateSchema(
+    page,
+    {
+      type: (page.schema_type as any) || 'WebPage',
+      datePublished: page.published_at || page.created_at,
+      dateModified: page.updated_at,
+      ...(page.schema_options || {}),
+    },
+    siteUrl
+  );
+
   return (
     <>
       {/* Load Tailwind CDN for user-generated content with arbitrary classes */}
       <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
+      
+      {/* Schema.org JSON-LD */}
+      {schemaData && (
+        <Script
+          id="schema-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+        />
+      )}
+      
       <PublicHeader />
       <main className="min-h-screen pt-20 public-content">
         {/* If content uses custom HTML/Tailwind classes, render without prose wrapper */}
